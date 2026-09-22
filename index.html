@@ -410,19 +410,14 @@
             localStorage.setItem('skylar_weekly_submissions_v18', JSON.stringify(submissions));
             localStorage.setItem('skylar_days_config_v18', JSON.stringify(daysConfig));
 
-            const payload = {
-                type: 'saveAll',
-                users: users,
-                submissions: submissions,
-                daysConfig: daysConfig
-            };
+            // 改用 GET 方式傳送，完美繞過手機 CORS 限制
+            const usersStr = encodeURIComponent(JSON.stringify(users));
+            const subStr = encodeURIComponent(JSON.stringify(submissions));
+            const daysStr = encodeURIComponent(JSON.stringify(daysConfig));
 
-            fetch(GOOGLE_APP_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            fetch(`${GOOGLE_APP_SCRIPT_URL}?action=saveData&type=users&content=${usersStr}`);
+            fetch(`${GOOGLE_APP_SCRIPT_URL}?action=saveData&type=submissions&content=${subStr}`);
+            fetch(`${GOOGLE_APP_SCRIPT_URL}?action=saveData&type=daysConfig&content=${daysStr}`);
         }
 
         function checkLoginState() {
