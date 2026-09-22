@@ -386,23 +386,8 @@
         }
 
         function forceSyncToCloud() {
-            const payload = {
-                type: 'saveAll',
-                users: users,
-                submissions: submissions,
-                daysConfig: daysConfig
-            };
-
-            fetch(GOOGLE_APP_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(() => {
-                alert("已成功強制同步所有導師資料與排班至 Google Sheet！現在手機端可以順利登入囉。");
-            }).catch(err => {
-                alert("同步失敗，請檢查網路連線。");
-            });
+            syncCloudData();
+            alert("已成功強制同步所有導師資料與排班至 Google Sheet！現在手機端可以順利登入囉。");
         }
 
         function syncCloudData() {
@@ -650,7 +635,6 @@
         function openDispatchModal(dateKey) {
             targetDispatchDate = dateKey;
             document.getElementById('adminDispatchModal').classList.remove('hidden');
-            // ... (簡化彈窗載入)
         }
         function closeDispatchModal() { document.getElementById('adminDispatchModal').classList.add('hidden'); renderWeeklyMatrix(); }
         
