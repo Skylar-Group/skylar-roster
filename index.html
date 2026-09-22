@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skylar Learning Center - 導師報更及排班管理系統</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HTML2Canvas CDN (用於將月曆更表轉為 PNG 圖像) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-lg font-bold flex items-center justify-center shadow">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 v16.0 (彈窗佈局優化版)</p>
+                </div>
+            </div>
+
+            <div id="userInfoHeader" class="hidden flex items-center space-x-4">
+                <div class="text-right">
+                    <span id="currentUserName" class="block font-semibold text-slate-800 text-sm"></span>
+                    <span id="currentUserRole" class="block text-xs text-slate-500"></span>
+                </div>
+                <button onclick="logout()" class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition font-medium">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>登出</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- 1. LOGIN SCREEN -->
+        <div id="loginSection" class="max-w-md mx-auto my-12 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl mb-4">
+                        <i data-lucide="lock" class="w-8 h-8"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800">系統登入</h2>
+                    <p class="text-sm text-slate-500 mt-1">請輸入您的導師或管理員帳號</p>
+                </div>
+
+                <div id="loginError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center space-x-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+                    <span id="loginErrorMsg">帳號或密碼錯誤</span>
+                </div>
+
+                <form onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">使用者名稱 / 帳號</label>
+                        <input type="text" id="loginUsername" required placeholder="例如：tutor1 或 admin" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">密碼</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition shadow hover:shadow-md text-sm">
+                        安全登入
+                    </button>
+                </form>
+
+                <div class="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-500 space-y-2">
+                    <p class="font-semibold text-slate-700">預設測試帳號：</p>
+                    <div class="bg-slate-50 p-3 rounded-lg space-y-1 font-mono">
+                        <p><span class="text-slate-400">導師:</span> tutor1 / 1234 (陳大文)</p>
+                        <p><span class="text-slate-400">導師:</span> tutor2 / 1234 (張小明)</p>
+                        <p><span class="text-slate-400">管理員:</span> admin / admin123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. TUTOR VIEW -->
+        <div id="tutorSection" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-semibold mb-2 backdrop-blur-sm">導師報更專區</span>
+                    <h2 class="text-2xl font-bold">填報可上班日子與時段</h2>
+                    <p class="text-indigo-100 text-sm mt-1">提示：已核准之更次不可自行更改，如有特別事故請點擊「請假」。</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="saveTutorAvailability()" class="bg-white text-indigo-600 font-semibold px-5 py-2.5 rounded-xl shadow hover:bg-indigo-50 transition flex items-center space-x-2 text-sm">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>儲存報更</span>
+                    </button>
+                    <button onclick="notifyAdminViaWA()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center space-x-2 text-sm">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        <span>WhatsApp 通知 Admin</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                    <span id="tutorMonthYearText" class="text-lg font-bold text-slate-800">2026年 10月</span>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                </div>
+                <div class="flex items-center space-x-4 text-xs font-medium">
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-indigo-600"></span><span class="text-slate-600">已選待審</span></div>
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span><span class="text-slate-600">已核准 (需請假)</span></div>
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-amber-500"></span><span class="text-slate-600">請假審批中</span></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-4">
+                <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-bold text-slate-500 uppercase">
+                    <div class="py-2">一 (Mon)</div>
+                    <div class="py-2">二 (Tue)</div>
+                    <div class="py-2 text-indigo-600 font-black">三 (Wed)</div>
+                    <div class="py-2">四 (Thu)</div>
+                    <div class="py-2">五 (Fri)</div>
+                    <div class="py-2 text-indigo-600">六 (Sat)</div>
+                    <div class="py-2 text-red-500">日 (Sun)</div>
+                </div>
+                <div id="tutorCalendarGrid" class="grid grid-cols-7 gap-2"></div>
+            </div>
+        </div>
+
+        <!-- 3. ADMIN VIEW -->
+        <div id="adminSection" class="hidden space-y-6">
+            <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-semibold mb-2 border border-amber-500/30">管理員控制台</span>
+                    <h2 class="text-2xl font-bold">排班審批、時段與帳號管理</h2>
+                    <p class="text-slate-300 text-sm mt-1">審批完畢後，可以月曆型態將全月班次一鍵發送 WhatsApp 予導師。</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openWhatsAppModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center space-x-1.5 shadow">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <span>WhatsApp 發送月曆更表圖片</span>
+                    </button>
+                    <button onclick="exportCSV()" class="bg-slate-800 hover:bg-slate-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center space-x-1.5 border border-slate-700">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>匯出 CSV</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex space-x-2 border-b border-slate-200 overflow-x-auto">
+                <button id="tabBtnMatrix" onclick="switchAdminTab('matrix')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2 whitespace-nowrap">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    <span>全月排班矩陣 (週一為首月曆視角)</span>
+                </button>
+                <button id="tabBtnDays" onclick="switchAdminTab('days')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
+                    <i data-lucide="calendar-off" class="w-4 h-4"></i>
+                    <span>開放/關閉日子與彈性時段管理</span>
+                </button>
+                <button id="tabBtnTutors" onclick="switchAdminTab('tutors')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
+                    <i data-lucide="user-cog" class="w-4 h-4"></i>
+                    <span>導師帳號與密碼管理</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: FULL MONTH CALENDAR MATRIX VIEW -->
+            <div id="adminTabMatrix" class="space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+                    
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+                        <div>
+                            <div class="flex items-center space-x-3">
+                                <h3 id="adminMatrixTitle" class="text-xl font-black text-slate-800">2026年 10月 全月排班矩陣總覽</h3>
+                                <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-full">逢星期三雙班次</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">以週一為首、週日為末的月曆視覺全月派更。點擊各卡片的「+ 派更 / 審批」即可即時管理當日導師。</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="batchApproveAll()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition">✓ 一鍵核准全部待審</button>
+                            <button onclick="batchRejectAll()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold px-4 py-2 rounded-xl transition">一鍵拒絕全部待審</button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xs font-bold text-slate-500">切換月份：</span>
+                            <button onclick="changeMonth(-1)" class="p-1.5 bg-white border rounded-lg hover:bg-slate-100 text-slate-600"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <span id="matrixMonthText" class="text-xs font-bold text-indigo-600 bg-white border border-indigo-200 px-3 py-1.5 rounded-lg">2026年 10月</span>
+                            <button onclick="changeMonth(1)" class="p-1.5 bg-white border rounded-lg hover:bg-slate-100 text-slate-600"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold text-slate-500">快速批次工具：</span>
+                            <select id="quickTutorSelect" class="border bg-white rounded-lg text-xs px-2.5 py-1.5 font-medium"></select>
+                            <button onclick="approveSelectedTutorMonth()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition">核准此導師全月報更</button>
+                        </div>
+
+                        <div class="flex items-center space-x-3 text-xs font-semibold text-slate-600">
+                            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-1.5"></span>黃色: 待審</span>
+                            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>綠色: 已核准</span>
+                            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-1.5"></span>紅色: 請假</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="grid grid-cols-7 gap-3 text-center text-xs font-bold text-slate-600 uppercase mb-2">
+                            <div class="py-2 bg-slate-100 rounded-lg">一 (Mon)</div>
+                            <div class="py-2 bg-slate-100 rounded-lg">二 (Tue)</div>
+                            <div class="py-2 bg-indigo-100 text-indigo-800 rounded-lg font-black">三 (Wed)</div>
+                            <div class="py-2 bg-slate-100 rounded-lg">四 (Thu)</div>
+                            <div class="py-2 bg-slate-100 rounded-lg">五 (Fri)</div>
+                            <div class="py-2 bg-slate-100 rounded-lg text-indigo-600">六 (Sat)</div>
+                            <div class="py-2 bg-slate-100 rounded-lg text-red-500">日 (Sun)</div>
+                        </div>
+
+                        <div id="adminMatrixCalendarGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 2: DAYS & HOLIDAYS MANAGEMENT -->
+            <div id="adminTabDays" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                <div class="flex items-center justify-between border-b pb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">開放/關閉日子與彈性時段管理</h3>
+                        <p class="text-xs text-slate-500 mt-1">按週一至週日排列。點擊「開放/休館」切換狀態，或以點選框勾選開放時段。</p>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-slate-50 p-2 rounded-xl border">
+                        <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                        <span id="adminDaysMonthText" class="text-sm font-bold text-slate-800">2026年 10月</span>
+                        <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="adminDaysToggleGrid"></div>
+            </div>
+
+            <!-- TAB 3: TUTOR MANAGEMENT -->
+            <div id="adminTabTutors" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                <div class="flex justify-between items-center border-b pb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">導師帳號及密碼管理</h3>
+                        <p class="text-xs text-slate-500 mt-1">在此新增新導師、重設密碼或移除離職導師。</p>
+                    </div>
+                    <button onclick="openAddTutorModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center space-x-1.5 shadow">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        <span>新增導師帳號</span>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 font-semibold border-b">
+                            <tr>
+                                <th class="p-3">導師姓名</th>
+                                <th class="p-3">登入帳號</th>
+                                <th class="p-3">專科 / 科目</th>
+                                <th class="p-3">WhatsApp 電話</th>
+                                <th class="p-3">密碼</th>
+                                <th class="p-3 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tutorManagementTable" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL 1: ADMIN DAY DISPATCH MODAL -->
+    <div id="adminDispatchModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-8 pb-12 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-5 border border-slate-100 max-h-[92vh] flex flex-col my-auto">
+            <div class="flex justify-between items-center border-b pb-3 flex-shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                        <i data-lucide="layout-grid" class="w-5 h-5 text-indigo-600"></i>
+                        <span>單日派更矩陣總覽 (縱橫對照)</span>
+                    </h3>
+                    <p id="dispatchModalDateTitle" class="text-xs text-indigo-600 font-bold mt-0.5">2026-10-02</p>
+                </div>
+                <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs flex-shrink-0">
+                <span class="text-indigo-900 font-medium">💡 **一眼全覽說明**：橫列為導師，直欄為當天班次。點擊卡片可直接切換審批狀態。</span>
+                <div class="flex items-center space-x-2 font-semibold text-[11px] flex-shrink-0">
+                    <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-300">📌 已報更 (待審)</span>
+                    <span class="bg-emerald-600 text-white px-2 py-0.5 rounded shadow-sm">✓ 已核准</span>
+                    <span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded border border-rose-300">⚠️ 請假</span>
+                    <span class="bg-slate-100 text-slate-400 px-2 py-0.5 rounded">未報更</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 shadow-sm flex-grow">
+                <table class="w-full text-left border-collapse bg-white">
+                    <thead id="dispatchMatrixHead" class="bg-slate-100 text-slate-700 text-xs font-bold sticky top-0 z-10 shadow-sm"></thead>
+                    <tbody id="dispatchMatrixBody" class="divide-y text-xs"></tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t flex-shrink-0">
+                <button onclick="closeDispatchModal()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow transition flex items-center space-x-2">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>完成並關閉</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CHECKBOX SLOT SELECTOR -->
+    <div id="checkboxSlotModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">設定開放班次時段</h3>
+                    <p id="checkboxModalDateTitle" class="text-xs text-indigo-600 font-bold mt-0.5">2026-10-02</p>
+                </div>
+                <button onclick="closeCheckboxSlotModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-2">請勾選開放供導師報更的時段：</label>
+                    <div id="slotCheckboxesContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[260px] overflow-y-auto p-1"></div>
+                </div>
+                <div class="border-t pt-3 flex justify-between items-center">
+                    <button onclick="toggleAllCheckboxes(true)" class="text-xs text-indigo-600 font-bold hover:underline">全選</button>
+                    <button onclick="toggleAllCheckboxes(false)" class="text-xs text-slate-500 font-bold hover:underline">全取消</button>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2 border-t">
+                <button onclick="closeCheckboxSlotModal()" class="px-4 py-2 border rounded-lg text-sm text-slate-600">取消</button>
+                <button onclick="saveCheckboxSlots()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow">儲存時段設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: VISUAL CALENDAR IMAGE EXPORT FOR WHATSAPP (完全解決頂部遮擋問題) -->
+    <div id="whatsappModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-8 pb-12 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col my-auto border border-slate-100">
+            <!-- Header (Always Visible) -->
+            <div class="flex justify-between items-center border-b pb-3 flex-shrink-0">
+                <div class="flex items-center space-x-2">
+                    <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">全月月曆視覺更表圖片匯出</h3>
+                        <p class="text-xs text-slate-400">連續時間段已自動合併（例如：10:00-14:00）</p>
+                    </div>
+                </div>
+                <button onclick="closeWhatsAppModal()" class="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <!-- Controls (Select Target) -->
+            <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs flex-shrink-0">
+                <div class="flex items-center space-x-2">
+                    <label class="font-bold text-slate-700">更表對象：</label>
+                    <select id="waRecipientSelect" onchange="renderVisualCalendarExport()" class="p-2 border rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                        <option value="ALL_GROUP">📢 全體導師總更表 (全月合集)</option>
+                    </select>
+                </div>
+                <span class="text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-full text-[11px]">可直接下載 PNG 圖片傳送至 WhatsApp</span>
+            </div>
+
+            <!-- Scrollable Canvas Area -->
+            <div class="border rounded-2xl p-4 bg-slate-100 overflow-x-auto overflow-y-auto flex-grow shadow-inner">
+                <div id="visualCalendarExportCanvas" class="bg-white p-6 rounded-xl min-w-[760px] font-sans shadow-sm border">
+                    <div class="text-center mb-4 border-b pb-3">
+                        <h2 class="text-xl font-black text-slate-800" id="visualExportTitle">Skylar Learning Center - 全月導師更表</h2>
+                        <p class="text-xs text-slate-500 mt-0.5" id="visualExportSubtitle">2026年10月份 官方核准時間表</p>
+                    </div>
+
+                    <!-- Mon-Sun Header -->
+                    <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase mb-2">
+                        <div class="py-1.5 bg-slate-100 rounded text-slate-700">一 (MON)</div>
+                        <div class="py-1.5 bg-slate-100 rounded text-slate-700">二 (TUE)</div>
+                        <div class="py-1.5 bg-indigo-100 text-indigo-900 rounded font-black">三 (WED)</div>
+                        <div class="py-1.5 bg-slate-100 rounded text-slate-700">四 (THU)</div>
+                        <div class="py-1.5 bg-slate-100 rounded text-slate-700">五 (FRI)</div>
+                        <div class="py-1.5 bg-indigo-50 text-indigo-700 rounded">六 (SAT)</div>
+                        <div class="py-1.5 bg-rose-50 text-rose-600 rounded">日 (SUN)</div>
+                    </div>
+
+                    <!-- Month Grid -->
+                    <div id="visualExportGrid" class="grid grid-cols-7 gap-2"></div>
+
+                    <div class="mt-4 pt-3 border-t text-slate-400 text-[10px] flex justify-between items-center">
+                        <span>請導師準時出席，如有請假事宜請提前於系統申請。</span>
+                        <span>產生時間：2026-10</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="flex justify-end space-x-3 pt-3 border-t flex-shrink-0">
+                <button onclick="closeWhatsAppModal()" class="px-4 py-2 border rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">取消</button>
+                <button onclick="downloadCalendarImage()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow flex items-center space-x-2 transition">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>下載更表圖片 (PNG/JPG)</span>
+                </button>
+                <button onclick="shareCalendarToWhatsApp()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow flex items-center space-x-2 transition">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <span>開啟 WhatsApp 發送</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: ADD/EDIT TUTOR MODAL -->
+    <div id="tutorModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 id="tutorModalTitle" class="text-lg font-bold text-slate-800 border-b pb-3">新增導師帳號</h3>
+            <form onsubmit="handleSaveTutor(event)" class="space-y-4">
+                <input type="hidden" id="editTutorKey">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">導師姓名</label>
+                    <input type="text" id="modalTutorName" required placeholder="例如：陳大文 (Chan Tai Man)" class="w-full p-2.5 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">專科 / 科目</label>
+                    <input type="text" id="modalTutorSubjects" placeholder="例如：小學數學 / 英文" class="w-full p-2.5 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">登入帳號 (Username)</label>
+                    <input type="text" id="modalTutorUser" required placeholder="例如：tutor1" class="w-full p-2.5 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">WhatsApp 電話號碼</label>
+                    <input type="text" id="modalTutorPhone" placeholder="例如：91234567" class="w-full p-2.5 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">登入密碼</label>
+                    <input type="text" id="modalTutorPass" required placeholder="設定密碼" class="w-full p-2.5 border rounded-lg text-sm font-mono">
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeTutorModal()" class="px-4 py-2 border rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">取消</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow">儲存帳號</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const ALL_AVAILABLE_SLOTS = [
+            '09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00',
+            '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00',
+            '17:00-18:00', '18:00-19:00', '19:00-20:00', '15:00-20:00', '16:00-20:00'
+        ];
+
+        const DEFAULT_USERS = {
+            "tutor1": { name: "陳大文 (Chan Tai Man)", subjects: "小學數學 / 英文", role: "tutor", pass: "1234", phone: "91234567" },
+            "tutor2": { name: "張小明 (Cheung Siu Ming)", subjects: "高中物理 / 化學", role: "tutor", pass: "1234", phone: "98765432" },
+            "tutor3": { name: "李老師 (Miss Lee)", subjects: "初初中文 / 歷史", role: "tutor", pass: "1234", phone: "90001111" },
+            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" }
+        };
+
+        const HK_HOLIDAYS_2026 = {
+            "2026-10-01": "國慶日",
+            "2026-10-18": "重陽節"
+        };
+
+        let users = JSON.parse(localStorage.getItem('skylar_users_v16') || JSON.stringify(DEFAULT_USERS));
+        let currentUser = null;
+        let currentYear = 2026;
+        let currentMonth = 9; // Oct (0-indexed 9)
+        let targetSlotDate = null;
+        let targetDispatchDate = null;
+
+        let daysConfig = JSON.parse(localStorage.getItem('skylar_days_config_v16') || '{}');
+        let customSlots = JSON.parse(localStorage.getItem('skylar_custom_slots_v16') || '{}');
+        let submissions = JSON.parse(localStorage.getItem('skylar_weekly_submissions_v16') || JSON.stringify({
+            "2026-10-02": { "tutor1": { "16:00-20:00": "approved" }, "tutor2": { "16:00-20:00": "approved" } },
+            "2026-10-03": { 
+                "tutor1": { "10:00-11:00": "approved", "11:00-12:00": "approved", "12:00-13:00": "approved", "13:00-14:00": "approved" } 
+            },
+            "2026-10-05": { "tutor1": { "16:00-20:00": "approved" }, "tutor3": { "16:00-20:00": "approved" } },
+            "2026-10-07": {
+                "tutor1": { "15:00-20:00": "approved", "16:00-20:00": "pending" },
+                "tutor2": { "15:00-20:00": "pending", "16:00-20:00": "approved" },
+                "tutor3": { "16:00-20:00": "approved" }
+            },
+            "2026-10-08": { "tutor1": { "16:00-20:00": "pending" } }
+        }));
+
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            const saved = localStorage.getItem('skylar_logged_user');
+            if (saved && users[saved]) loginUser(saved);
+        });
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            if (users[u] && users[u].pass === p) {
+                localStorage.setItem('skylar_logged_user', u);
+                loginUser(u);
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function loginUser(username) {
+            currentUser = username;
+            const userData = users[username];
+
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('userInfoHeader').classList.remove('hidden');
+            document.getElementById('currentUserName').innerText = userData.name;
+            document.getElementById('currentUserRole').innerText = userData.role === 'admin' ? '系統管理員' : '兼職導師';
+
+            if (userData.role === 'admin') {
+                document.getElementById('adminSection').classList.remove('hidden');
+                document.getElementById('tutorSection').classList.add('hidden');
+                initTutorSelect();
+                renderWeeklyMatrix();
+            } else {
+                document.getElementById('tutorSection').classList.remove('hidden');
+                document.getElementById('adminSection').classList.add('hidden');
+                renderTutorCalendar();
+            }
+            lucide.createIcons();
+        }
+
+        function logout() {
+            localStorage.removeItem('skylar_logged_user');
+            currentUser = null;
+            document.getElementById('userInfoHeader').classList.add('hidden');
+            document.getElementById('tutorSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+        }
+
+        function getDateKey(year, month, day) {
+            return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+
+        function isDayOpen(dateKey) {
+            if (daysConfig.hasOwnProperty(dateKey)) return daysConfig[dateKey];
+            return !HK_HOLIDAYS_2026[dateKey];
+        }
+
+        function getDaySlots(dateKey, dayOfWeek) {
+            if (customSlots[dateKey]) return customSlots[dateKey];
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                return ['10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'];
+            } else if (dayOfWeek === 3) {
+                return ['15:00-20:00', '16:00-20:00'];
+            }
+            return ['16:00-20:00'];
+        }
+
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            else if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+
+            if (users[currentUser].role === 'admin') {
+                renderWeeklyMatrix();
+                renderAdminDaysConfig();
+            } else {
+                renderTutorCalendar();
+            }
+        }
+
+        // --- TUTOR VIEW ---
+        function renderTutorCalendar() {
+            document.getElementById('tutorMonthYearText').innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            const grid = document.getElementById('tutorCalendarGrid');
+            grid.innerHTML = '';
+
+            const firstDayObj = new Date(currentYear, currentMonth, 1);
+            let firstDayOfWeek = firstDayObj.getDay(); 
+            let blankCount = (firstDayOfWeek === 0) ? 6 : firstDayOfWeek - 1;
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < blankCount; i++) grid.appendChild(document.createElement('div'));
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = getDateKey(currentYear, currentMonth, day);
+                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+                const open = isDayOpen(dateKey);
+                const holiday = HK_HOLIDAYS_2026[dateKey];
+                const slots = getDaySlots(dateKey, dayOfWeek);
+
+                const card = document.createElement('div');
+                card.className = `p-2.5 rounded-xl border flex flex-col justify-between min-h-[110px] ${!open ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-200 shadow-sm'}`;
+
+                let html = `<div class="flex justify-between items-start">
+                    <span class="font-bold text-xs ${dayOfWeek === 0 ? 'text-red-500' : ''}">${day}</span>
+                    ${holiday ? `<span class="text-[9px] bg-red-100 text-red-600 px-1 rounded font-medium">${holiday}</span>` : ''}
+                </div>`;
+
+                if (!open) {
+                    html += `<div class="text-[11px] text-slate-400 py-2">休館</div>`;
+                } else {
+                    html += `<div class="space-y-1 mt-1.5 overflow-y-auto max-h-[120px]" id="slot-container-${dateKey}">`;
+                    slots.forEach(slot => {
+                        const st = (submissions[dateKey] && submissions[dateKey][currentUser] && submissions[dateKey][currentUser][slot]) || null;
+                        html += renderTutorSlotButton(dateKey, slot, st);
+                    });
+                    html += `</div>`;
+                }
+
+                card.innerHTML = html;
+                grid.appendChild(card);
+            }
+            lucide.createIcons();
+        }
+
+        function renderTutorSlotButton(dateKey, slot, st) {
+            if (st === 'approved') {
+                return `
+                    <div class="w-full p-1.5 rounded text-[10px] bg-emerald-50 border border-emerald-300 flex items-center justify-between">
+                        <span class="font-bold text-emerald-800">${slot} ✓</span>
+                        <button onclick="requestLeave('${dateKey}', '${slot}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-1.5 py-0.5 rounded font-bold text-[9px]">請假</button>
+                    </div>
+                `;
+            } else if (st === 'leave_pending') {
+                return `
+                    <div class="w-full p-1.5 rounded text-[10px] bg-amber-50 border border-amber-300 flex items-center justify-between text-amber-800 font-bold">
+                        <span>${slot}</span>
+                        <span class="text-[9px] bg-amber-200 px-1 rounded">請假審批中</span>
+                    </div>
+                `;
+            } else {
+                return `
+                    <button onclick="toggleTutorSlotDirect('${dateKey}', '${slot}')" class="w-full text-left px-1.5 py-1 rounded text-[10px] border flex items-center justify-between ${getSlotBtnStyle(st)}">
+                        <span>${slot}</span>
+                        ${getSlotBadge(st)}
+                    </button>
+                `;
+            }
+        }
+
+        function getSlotBtnStyle(st) {
+            if (st === 'rejected') return 'bg-rose-50 border-rose-300 text-rose-600 line-through';
+            if (st === 'pending') return 'bg-indigo-600 border-indigo-600 text-white font-bold';
+            return 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-indigo-50';
+        }
+
+        function getSlotBadge(st) {
+            if (st === 'rejected') return '<span class="text-[9px] bg-rose-200 text-rose-800 px-1 rounded">拒絕</span>';
+            if (st === 'pending') return '<span class="text-[9px] bg-indigo-500 text-white px-1 rounded">已報</span>';
+            return '<span class="text-[9px] text-slate-400">+</span>';
+        }
+
+        function toggleTutorSlotDirect(dateKey, slot) {
+            if (!submissions[dateKey]) submissions[dateKey] = {};
+            if (!submissions[dateKey][currentUser]) submissions[dateKey][currentUser] = {};
+
+            if (!submissions[dateKey][currentUser][slot]) {
+                submissions[dateKey][currentUser][slot] = 'pending';
+            } else {
+                delete submissions[dateKey][currentUser][slot];
+            }
+
+            const container = document.getElementById(`slot-container-${dateKey}`);
+            if (container) {
+                const dayOfWeek = new Date(dateKey).getDay();
+                const slots = getDaySlots(dateKey, dayOfWeek);
+                let newHtml = '';
+                slots.forEach(s => {
+                    const st = (submissions[dateKey] && submissions[dateKey][currentUser] && submissions[dateKey][currentUser][s]) || null;
+                    newHtml += renderTutorSlotButton(dateKey, s, st);
+                });
+                container.innerHTML = newHtml;
+            }
+        }
+
+        function requestLeave(dateKey, slot) {
+            if (confirm(`確定要為 ${dateKey} (${slot}) 申請請假嗎？申請需由 Admin 審批。`)) {
+                submissions[dateKey][currentUser][slot] = 'leave_pending';
+                localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+                renderTutorCalendar();
+            }
+        }
+
+        function saveTutorAvailability() {
+            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            alert('成功儲存報更資料！');
+        }
+
+        function notifyAdminViaWA() {
+            saveTutorAvailability();
+            const tName = users[currentUser].name;
+            const adminPhone = users['admin'] ? users['admin'].phone : '98888888';
+
+            let msg = `【Skylar 導師報更/請假通知】\n`;
+            msg += `導師姓名：${tName}\n`;
+            msg += `報更月份：${currentYear}年${currentMonth + 1}月\n`;
+            msg += `-----------------------------------\n`;
+
+            let pendingCount = 0;
+            let leaveCount = 0;
+
+            Object.keys(submissions).sort().forEach(d => {
+                if (d.startsWith(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`)) {
+                    if (submissions[d] && submissions[d][currentUser]) {
+                        Object.keys(submissions[d][currentUser]).forEach(slot => {
+                            const st = submissions[d][currentUser][slot];
+                            if (st === 'pending') {
+                                msg += `📌 [新增報更待審] ${d} : ${slot}\n`;
+                                pendingCount++;
+                            } else if (st === 'leave_pending') {
+                                msg += `⚠️ [請假申請待審] ${d} : ${slot}\n`;
+                                leaveCount++;
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (pendingCount === 0 && leaveCount === 0) msg += `（無最新待審批的報更或請假項目）\n`;
+
+            msg += `-----------------------------------\n`;
+            msg += `請 Admin 抽空登入系統進行審批，謝謝！`;
+
+            window.open(`https://api.whatsapp.com/send?phone=852${adminPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        // --- ADMIN CALENDAR MATRIX VIEW ---
+        function switchAdminTab(tab) {
+            ['Matrix', 'Days', 'Tutors'].forEach(t => {
+                const el = document.getElementById(`adminTab${t}`);
+                const btn = document.getElementById(`tabBtn${t}`);
+                if (t.toLowerCase() === tab) {
+                    el.classList.remove('hidden');
+                    btn.className = "px-5 py-2.5 font-medium text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2 whitespace-nowrap";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "px-5 py-2.5 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap";
+                }
+            });
+            if (tab === 'matrix') renderWeeklyMatrix();
+            if (tab === 'days') renderAdminDaysConfig();
+            if (tab === 'tutors') renderTutorManagement();
+        }
+
+        function initTutorSelect() {
+            const select = document.getElementById('quickTutorSelect');
+            select.innerHTML = '';
+            Object.keys(users).filter(u => users[u].role === 'tutor').forEach(key => {
+                select.innerHTML += `<option value="${key}">${users[key].name}</option>`;
+            });
+
+            const waSelect = document.getElementById('waRecipientSelect');
+            waSelect.innerHTML = `<option value="ALL_GROUP">📢 全體導師總更表 (全月合集)</option>`;
+            Object.keys(users).filter(u => users[u].role === 'tutor').forEach(k => {
+                waSelect.innerHTML += `<option value="${k}">👤 個人全月更表 : ${users[k].name}</option>`;
+            });
+        }
+
+        function renderWeeklyMatrix() {
+            document.getElementById('adminMatrixTitle').innerText = `${currentYear}年 ${currentMonth + 1}月 全月排班矩陣總覽`;
+            document.getElementById('matrixMonthText').innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            
+            const grid = document.getElementById('adminMatrixCalendarGrid');
+            grid.innerHTML = '';
+
+            const firstDayObj = new Date(currentYear, currentMonth, 1);
+            let firstDayOfWeek = firstDayObj.getDay(); 
+            let blankCount = (firstDayOfWeek === 0) ? 6 : firstDayOfWeek - 1;
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < blankCount; i++) {
+                const emptyCard = document.createElement('div');
+                emptyCard.className = 'p-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 min-h-[140px]';
+                grid.appendChild(emptyCard);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = getDateKey(currentYear, currentMonth, day);
+                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+                const open = isDayOpen(dateKey);
+                const isHoliday = !!HK_HOLIDAYS_2026[dateKey];
+                const slots = getDaySlots(dateKey, dayOfWeek);
+
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-2xl border flex flex-col justify-between shadow-sm transition min-h-[140px] ${!open ? 'bg-rose-50/40 border-rose-200' : 'bg-white border-slate-200 hover:border-indigo-300'}`;
+
+                let html = `<div>
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 mb-2">
+                        <span class="text-xs font-bold text-slate-800">${currentMonth + 1}月${day}日 (${['日','一','二','三','四','五','六'][dayOfWeek]})</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${open ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            ${open ? '開放' : '休館'}
+                        </span>
+                    </div>`;
+
+                if (isHoliday) {
+                    html += `<div class="text-[10px] text-rose-600 font-bold mb-1">${HK_HOLIDAYS_2026[dateKey]}</div>`;
+                }
+
+                if (!open) {
+                    html += `<div class="text-xs text-slate-400 py-3 font-medium">不開放排班</div>`;
+                } else {
+                    html += `<div class="space-y-2 mb-2">`;
+                    slots.forEach(slot => {
+                        let tutorList = [];
+                        if (submissions[dateKey]) {
+                            Object.keys(submissions[dateKey]).forEach(tKey => {
+                                const st = submissions[dateKey][tKey][slot];
+                                if (st) {
+                                    const tName = users[tKey] ? users[tKey].name.split(' ')[0] : tKey;
+                                    if (st === 'approved') tutorList.push(`<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[9px] font-bold">${tName} ✓</span>`);
+                                    else if (st === 'pending') tutorList.push(`<span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[9px] font-bold">${tName} (待審)</span>`);
+                                    else if (st === 'leave_pending') tutorList.push(`<span class="bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded text-[9px] font-bold">${tName} (請假)</span>`);
+                                }
+                            });
+                        }
+
+                        html += `<div class="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                            <div class="text-[10px] font-bold text-slate-500 mb-1">${slot}</div>
+                            <div class="flex flex-wrap gap-1">
+                                ${tutorList.length > 0 ? tutorList.join('') : '<span class="text-[9px] text-slate-300">尚未派更</span>'}
+                            </div>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+
+                if (open) {
+                    html += `<button onclick="openDispatchModal('${dateKey}')" class="w-full mt-2 text-[10px] bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 py-1.5 rounded-xl text-indigo-700 font-bold flex items-center justify-center space-x-1 transition shadow-sm">
+                        <i data-lucide="user-check" class="w-3 h-3"></i>
+                        <span>+ 派更 / 審批</span>
+                    </button>`;
+                }
+
+                card.innerHTML = html;
+                grid.appendChild(card);
+            }
+            lucide.createIcons();
+        }
+
+        // DISPATCH MODAL (2D TUTOR MATRIX TABLE RECONSTRUCTION)
+        function openDispatchModal(dateKey) {
+            targetDispatchDate = dateKey;
+            document.getElementById('dispatchModalDateTitle').innerText = dateKey;
+            
+            const dayOfWeek = new Date(dateKey).getDay();
+            const slots = getDaySlots(dateKey, dayOfWeek);
+            const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor');
+
+            const head = document.getElementById('dispatchMatrixHead');
+            const body = document.getElementById('dispatchMatrixBody');
+            head.innerHTML = ''; body.innerHTML = '';
+
+            let headHtml = `<tr><th class="p-3 bg-slate-100 text-slate-800 font-bold border-r w-[180px] sticky left-0 z-20">導師姓名 \\ 班次</th>`;
+            slots.forEach(slot => {
+                headHtml += `<th class="p-3 border-r text-center font-bold text-indigo-900 bg-indigo-50/80 min-w-[140px]">${slot}</th>`;
+            });
+            headHtml += `</tr>`;
+            head.innerHTML = headHtml;
+
+            tutorKeys.forEach(tKey => {
+                const t = users[tKey];
+                let rowHtml = `<tr class="hover:bg-slate-50/80 transition">
+                    <td class="p-3 border-r font-bold bg-white sticky left-0 z-10 shadow-sm border-b">
+                        <div class="text-xs text-slate-800">${t.name}</div>
+                        <div class="text-[10px] text-slate-400 font-normal mt-0.5">${t.subjects || ''}</div>
+                    </td>`;
+
+                slots.forEach(slot => {
+                    const st = (submissions[dateKey] && submissions[dateKey][tKey] && submissions[dateKey][tKey][slot]) || null;
+                    rowHtml += `<td class="p-2 border-r text-center border-b">${renderMatrixCellAction(dateKey, tKey, slot, st)}</td>`;
+                });
+
+                rowHtml += `</tr>`;
+                body.innerHTML += rowHtml;
+            });
+
+            document.getElementById('adminDispatchModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function renderMatrixCellAction(dateKey, tutorKey, slot, status) {
+            if (status === 'approved') {
+                return `
+                    <div class="bg-emerald-500 text-white p-2 rounded-xl border border-emerald-600 flex flex-col items-center justify-center space-y-1 shadow-sm">
+                        <span class="font-bold text-xs flex items-center"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-1"></i>已核准</span>
+                        <div class="flex items-center space-x-1 pt-0.5">
+                            <button onclick="setDispatchStatus('${dateKey}', '${tutorKey}', '${slot}', 'rejected')" class="bg-white/20 hover:bg-white/30 text-white px-1.5 py-0.5 rounded text-[9px] font-bold">✕ 拒絕</button>
+                            <button onclick="setDispatchStatus('${dateKey}', '${tutorKey}', '${slot}', null)" class="bg-white/20 hover:bg-white/30 text-white px-1.5 py-0.5 rounded text-[9px]">清除</button>
+                        </div>
+                    </div>
+                `;
+            } else if (status === 'pending') {
+                return `
+                    <div class="bg-amber-100 border border-amber-300 text-amber-900 p-2 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm">
+                        <span class="font-bold text-xs text-amber-800 flex items-center">📌 已報更待審</span>
+                        <div class="flex items-center space-x-1 pt-0.5">
+                            <button onclick="setDispatchStatus('${dateKey}', '${tutorKey}', '${slot}', 'approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-0.5 rounded text-[10px] shadow">✓ 核准</button>
+                            <button onclick="setDispatchStatus('${dateKey}', '${tutorKey}', '${slot}', 'rejected')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-1.5 py-0.5 rounded text-[10px]">✕</button>
+                        </div>
+                    </div>
+                `;
+            } else if (status === 'leave_pending') {
+                return `
+                    <div class="bg-rose-100 border border-rose-300 text-rose-900 p-2 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm">
+                        <span class="font-bold text-xs text-rose-800 flex items-center">⚠️ 申請請假</span>
+                        <button onclick="setDispatchStatus('${dateKey}', '${tutorKey}', '${slot}', null)" class="bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold px-2 py-0.5 rounded">准假 (移除)</button>
+                    </div>
+                `;
+            } else if (status === 'rejected') {
+                return `
+                    <div class="bg-slate-100 border border-slate-200 p-2 rounded-xl text-center space-y-1">
+                        <span class="text-slate-400 text-xs font-bold line-through block">已拒絕</span>
+                        <button onclick="setDispatchStatus('${dateKey}', '${tutorKey}', '${slot}', 'approved')" class="bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 text-[9px] font-bold px-2 py-0.5 rounded">重新核准</button>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="p-2 rounded-xl hover:bg-slate-100/80 transition text-center space-y-1 group">
+                        <span class="text-slate-300 text-xs font-medium block">未報更</span>
+                        <button onclick="setDispatchStatus('${dateKey}', '${tutorKey}', '${slot}', 'approved')" class="hidden group-hover:inline-block bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-[9px] font-bold px-2 py-0.5 rounded shadow-sm">+ 強制派更</button>
+                    </div>
+                `;
+            }
+        }
+
+        function closeDispatchModal() {
+            document.getElementById('adminDispatchModal').classList.add('hidden');
+            renderWeeklyMatrix();
+        }
+
+        function setDispatchStatus(dateKey, tutorKey, slot, newStatus) {
+            if (!submissions[dateKey]) submissions[dateKey] = {};
+            if (!submissions[dateKey][tutorKey]) submissions[dateKey][tutorKey] = {};
+
+            if (newStatus === null) {
+                delete submissions[dateKey][tutorKey][slot];
+            } else {
+                submissions[dateKey][tutorKey][slot] = newStatus;
+            }
+
+            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            openDispatchModal(dateKey); // Re-render modal instantly
+        }
+
+        function batchApproveAll() {
+            let count = 0;
+            Object.keys(submissions).forEach(dateKey => {
+                Object.keys(submissions[dateKey]).forEach(t => {
+                    Object.keys(submissions[dateKey][t]).forEach(s => {
+                        if (submissions[dateKey][t][s] === 'pending') {
+                            submissions[dateKey][t][s] = 'approved';
+                            count++;
+                        }
+                    });
+                });
+            });
+            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            alert(`已成功一鍵核准 ${count} 項待審批更次！`);
+            renderWeeklyMatrix();
+        }
+
+        function batchRejectAll() {
+            let count = 0;
+            Object.keys(submissions).forEach(dateKey => {
+                Object.keys(submissions[dateKey]).forEach(t => {
+                    Object.keys(submissions[dateKey][t]).forEach(s => {
+                        if (submissions[dateKey][t][s] === 'pending') {
+                            submissions[dateKey][t][s] = 'rejected';
+                            count++;
+                        }
+                    });
+                });
+            });
+            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            alert(`已一鍵拒絕 ${count} 項待審批更次。`);
+            renderWeeklyMatrix();
+        }
+
+        function approveSelectedTutorMonth() {
+            const tutorKey = document.getElementById('quickTutorSelect').value;
+            const tutorName = users[tutorKey].name;
+            let count = 0;
+
+            Object.keys(submissions).forEach(dateKey => {
+                if (submissions[dateKey][tutorKey]) {
+                    Object.keys(submissions[dateKey][tutorKey]).forEach(s => {
+                        submissions[dateKey][tutorKey][s] = 'approved';
+                        count++;
+                    });
+                }
+            });
+
+            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            alert(`已核准導師 ${tutorName} 的全月所有報更！`);
+            renderWeeklyMatrix();
+        }
+
+        // --- VISUAL CALENDAR IMAGE EXPORT ---
+        function openWhatsAppModal() {
+            initTutorSelect();
+            renderVisualCalendarExport();
+            document.getElementById('whatsappModal').classList.remove('hidden');
+        }
+
+        function closeWhatsAppModal() {
+            document.getElementById('whatsappModal').classList.add('hidden');
+        }
+
+        function mergeConsecutiveSlots(slotItems) {
+            if (!slotItems || slotItems.length === 0) return [];
+
+            let timeBlocks = [];
+            slotItems.forEach(item => {
+                const parts = item.slot.split('-');
+                if (parts.length === 2) {
+                    const startMin = parseTimeToMinutes(parts[0]);
+                    const endMin = parseTimeToMinutes(parts[1]);
+                    timeBlocks.push({ startMin, endMin, tutors: item.tutors });
+                }
+            });
+
+            timeBlocks.sort((a, b) => a.startMin - b.startMin);
+
+            let merged = [];
+            timeBlocks.forEach(block => {
+                if (merged.length === 0) {
+                    merged.push({ startMin: block.startMin, endMin: block.endMin, tutors: block.tutors });
+                } else {
+                    let prev = merged[merged.length - 1];
+                    if (prev.endMin === block.startMin && prev.tutors === block.tutors) {
+                        prev.endMin = block.endMin;
+                    } else {
+                        merged.push({ startMin: block.startMin, endMin: block.endMin, tutors: block.tutors });
+                    }
+                }
+            });
+
+            return merged.map(m => `${minutesToTimeStr(m.startMin)}-${minutesToTimeStr(m.endMin)}: ${m.tutors}`);
+        }
+
+        function parseTimeToMinutes(tStr) {
+            const [h, m] = tStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function minutesToTimeStr(mins) {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        function renderVisualCalendarExport() {
+            const recipient = document.getElementById('waRecipientSelect').value;
+            const subtitle = document.getElementById('visualExportSubtitle');
+            
+            if (recipient === 'ALL_GROUP') {
+                subtitle.innerText = `${currentYear}年${currentMonth + 1}月份 全體導師官方核准更表`;
+            } else {
+                subtitle.innerText = `${currentYear}年${currentMonth + 1}月份 個人核准更表 (${users[recipient].name})`;
+            }
+
+            const grid = document.getElementById('visualExportGrid');
+            grid.innerHTML = '';
+
+            const firstDayObj = new Date(currentYear, currentMonth, 1);
+            let firstDayOfWeek = firstDayObj.getDay(); 
+            let blankCount = (firstDayOfWeek === 0) ? 6 : firstDayOfWeek - 1;
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < blankCount; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'p-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 min-h-[100px]';
+                grid.appendChild(empty);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = getDateKey(currentYear, currentMonth, day);
+                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+                const open = isDayOpen(dateKey);
+                const isHoliday = !!HK_HOLIDAYS_2026[dateKey];
+                const slots = getDaySlots(dateKey, dayOfWeek);
+
+                const card = document.createElement('div');
+                card.className = `p-2 rounded-xl border flex flex-col justify-between min-h-[100px] ${!open ? 'bg-rose-50/30 border-rose-200' : 'bg-white border-slate-200'}`;
+
+                let html = `<div>
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1.5">
+                        <span class="text-xs font-black text-slate-800">${day}日</span>
+                        ${!open ? `<span class="text-[9px] text-rose-600 font-bold">休館</span>` : ''}
+                    </div>`;
+
+                if (!open) {
+                    html += `<div class="text-[10px] text-slate-300 py-2">不開放</div>`;
+                } else {
+                    let rawSlotItems = [];
+                    slots.forEach(slot => {
+                        let tutorsOnSlot = [];
+                        Object.keys(users).filter(u => users[u].role === 'tutor').forEach(tKey => {
+                            if (recipient !== 'ALL_GROUP' && recipient !== tKey) return;
+
+                            if (submissions[dateKey] && submissions[dateKey][tKey] && submissions[dateKey][tKey][slot] === 'approved') {
+                                tutorsOnSlot.push(users[tKey].name.split(' ')[0]);
+                            }
+                        });
+
+                        if (tutorsOnSlot.length > 0) {
+                            rawSlotItems.push({
+                                slot: slot,
+                                tutors: tutorsOnSlot.join(',')
+                            });
+                        }
+                    });
+
+                    let mergedDisplayTexts = mergeConsecutiveSlots(rawSlotItems);
+
+                    if (mergedDisplayTexts.length > 0) {
+                        html += `<div class="space-y-1">`;
+                        mergedDisplayTexts.forEach(line => {
+                            const [timeRange, nameList] = line.split(': ');
+                            html += `<div class="text-[9.5px] leading-tight bg-slate-50 p-1 rounded border border-slate-100">
+                                <span class="font-bold text-indigo-700 block">${timeRange}:</span>
+                                <span class="text-slate-700 font-medium">${nameList}</span>
+                            </div>`;
+                        });
+                        html += `</div>`;
+                    } else {
+                        html += `<div class="text-[10px] text-slate-300 py-2">無更次</div>`;
+                    }
+                }
+
+                html += `</div>`;
+                card.innerHTML = html;
+                grid.appendChild(card);
+            }
+        }
+
+        function downloadCalendarImage() {
+            const target = document.getElementById('visualCalendarExportCanvas');
+            html2canvas(target, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Skylar_Roster_${currentYear}_${currentMonth+1}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        function shareCalendarToWhatsApp() {
+            downloadCalendarImage();
+            setTimeout(() => {
+                const text = encodeURIComponent(`【Skylar Learning Center】${currentYear}年${currentMonth + 1}月份 官方更表已產生！更表圖片已為您下載至電腦/手機，請直接於 WhatsApp 附檔發送予導師。`);
+                window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+            }, 800);
+        }
+
+        // --- DAYS MANAGEMENT ---
+        function renderAdminDaysConfig() {
+            document.getElementById('adminDaysMonthText').innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            const grid = document.getElementById('adminDaysToggleGrid');
+            grid.innerHTML = '';
+
+            const firstDayObj = new Date(currentYear, currentMonth, 1);
+            let firstDayOfWeek = firstDayObj.getDay(); 
+            let blankCount = (firstDayOfWeek === 0) ? 6 : firstDayOfWeek - 1;
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < blankCount; i++) {
+                const emptyCard = document.createElement('div');
+                emptyCard.className = 'p-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 min-h-[130px]';
+                grid.appendChild(emptyCard);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = getDateKey(currentYear, currentMonth, day);
+                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+                const open = isDayOpen(dateKey);
+                const isHoliday = !!HK_HOLIDAYS_2026[dateKey];
+                const slots = getDaySlots(dateKey, dayOfWeek);
+
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border flex flex-col justify-between shadow-sm transition min-h-[130px] ${open ? 'bg-emerald-50/40 border-emerald-200 hover:border-emerald-300' : 'bg-rose-50/40 border-rose-200'}`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center border-b border-slate-200/50 pb-1.5">
+                            <span class="text-xs font-bold text-slate-800">${currentMonth + 1}月${day}日 (${['日','一','二','三','四','五','六'][dayOfWeek]})</span>
+                            <button onclick="toggleDayStatus('${dateKey}', ${open})" class="text-[10px] px-2 py-0.5 rounded font-bold ${open ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">
+                                ${open ? '開放' : '休館'}
+                            </button>
+                        </div>
+                        ${isHoliday ? `<div class="text-[10px] text-rose-600 font-bold mt-1">${HK_HOLIDAYS_2026[dateKey]}</div>` : ''}
+                        <div class="mt-2 text-[10px] text-slate-500 font-mono leading-tight">
+                            <span class="font-bold text-slate-600 block mb-0.5">班次 (${slots.length}):</span>
+                            ${slots.join(', ')}
+                        </div>
+                    </div>
+                    ${open ? `<button onclick="openCheckboxSlotModal('${dateKey}')" class="mt-3 text-[10px] bg-white border border-indigo-200 hover:bg-indigo-50 py-1.5 rounded-lg text-indigo-700 font-bold flex items-center justify-center space-x-1 shadow-sm">
+                        <i data-lucide="check-square" class="w-3 h-3"></i>
+                        <span>+ 加開 / 設定時段</span>
+                    </button>` : ''}
+                `;
+                grid.appendChild(card);
+            }
+            lucide.createIcons();
+        }
+
+        function toggleDayStatus(dateKey, currentOpenState) {
+            daysConfig[dateKey] = !currentOpenState;
+            localStorage.setItem('skylar_days_config_v16', JSON.stringify(daysConfig));
+            renderAdminDaysConfig();
+        }
+
+        function openCheckboxSlotModal(dateKey) {
+            targetSlotDate = dateKey;
+            document.getElementById('checkboxModalDateTitle').innerText = dateKey;
+            
+            const dayOfWeek = new Date(dateKey).getDay();
+            const currentActiveSlots = getDaySlots(dateKey, dayOfWeek);
+            const container = document.getElementById('slotCheckboxesContainer');
+            container.innerHTML = '';
+
+            ALL_AVAILABLE_SLOTS.forEach(slot => {
+                const isChecked = currentActiveSlots.includes(slot);
+                container.innerHTML += `
+                    <label class="flex items-center space-x-2 p-2 border rounded-lg hover:bg-slate-50 cursor-pointer text-xs font-mono font-medium ${isChecked ? 'bg-indigo-50/70 border-indigo-300 text-indigo-900' : 'bg-white border-slate-200 text-slate-700'}">
+                        <input type="checkbox" value="${slot}" ${isChecked ? 'checked' : ''} class="slot-checkbox rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>${slot}</span>
+                    </label>
+                `;
+            });
+
+            document.getElementById('checkboxSlotModal').classList.remove('hidden');
+        }
+
+        function closeCheckboxSlotModal() {
+            document.getElementById('checkboxSlotModal').classList.add('hidden');
+        }
+
+        function toggleAllCheckboxes(checkedState) {
+            const checkboxes = document.querySelectorAll('.slot-checkbox');
+            checkboxes.forEach(cb => cb.checked = checkedState);
+        }
+
+        function saveCheckboxSlots() {
+            if (!targetSlotDate) return;
+            const checkboxes = document.querySelectorAll('.slot-checkbox');
+            let selected = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) selected.push(cb.value);
+            });
+
+            customSlots[targetSlotDate] = selected;
+            localStorage.setItem('skylar_custom_slots_v16', JSON.stringify(customSlots));
+            closeCheckboxSlotModal();
+            renderAdminDaysConfig();
+        }
+
+        // --- TUTOR ACCOUNT MANAGEMENT ---
+        function renderTutorManagement() {
+            const tbody = document.getElementById('tutorManagementTable');
+            tbody.innerHTML = '';
+
+            Object.keys(users).filter(u => users[u].role === 'tutor').forEach(u => {
+                const t = users[u];
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 font-semibold text-slate-800">${t.name}</td>
+                        <td class="p-3 font-mono text-slate-600">${u}</td>
+                        <td class="p-3 text-slate-600">${t.subjects || '-'}</td>
+                        <td class="p-3 font-mono text-slate-600">${t.phone || '-'}</td>
+                        <td class="p-3 font-mono text-slate-600">${t.pass}</td>
+                        <td class="p-3 text-right space-x-2">
+                            <button onclick="editTutor('${u}')" class="text-indigo-600 hover:text-indigo-800 font-medium text-xs">編輯/密碼</button>
+                            <button onclick="deleteTutor('${u}')" class="text-rose-600 hover:text-rose-800 font-medium text-xs">刪除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openAddTutorModal() {
+            document.getElementById('editTutorKey').value = '';
+            document.getElementById('tutorModalTitle').innerText = '新增導師帳號';
+            document.getElementById('modalTutorName').value = '';
+            document.getElementById('modalTutorSubjects').value = '';
+            document.getElementById('modalTutorUser').value = '';
+            document.getElementById('modalTutorPhone').value = '';
+            document.getElementById('modalTutorPass').value = '';
+            document.getElementById('modalTutorUser').disabled = false;
+            document.getElementById('tutorModal').classList.remove('hidden');
+        }
+
+        function editTutor(u) {
+            const t = users[u];
+            document.getElementById('editTutorKey').value = u;
+            document.getElementById('tutorModalTitle').innerText = '修改導師資料及密碼';
+            document.getElementById('modalTutorName').value = t.name;
+            document.getElementById('modalTutorSubjects').value = t.subjects || '';
+            document.getElementById('modalTutorUser').value = u;
+            document.getElementById('modalTutorPhone').value = t.phone || '';
+            document.getElementById('modalTutorPass').value = t.pass;
+            document.getElementById('modalTutorUser').disabled = true;
+            document.getElementById('tutorModal').classList.remove('hidden');
+        }
+
+        function closeTutorModal() {
+            document.getElementById('tutorModal').classList.add('hidden');
+        }
+
+        function handleSaveTutor(e) {
+            e.preventDefault();
+            const editKey = document.getElementById('editTutorKey').value;
+            const name = document.getElementById('modalTutorName').value.trim();
+            const subjects = document.getElementById('modalTutorSubjects').value.trim();
+            const username = document.getElementById('modalTutorUser').value.trim();
+            const phone = document.getElementById('modalTutorPhone').value.trim();
+            const pass = document.getElementById('modalTutorPass').value.trim();
+
+            if (editKey) {
+                users[editKey].name = name;
+                users[editKey].subjects = subjects;
+                users[editKey].phone = phone;
+                users[editKey].pass = pass;
+            } else {
+                if (users[username]) { alert('此使用者名稱已存在！'); return; }
+                users[username] = { name, subjects, role: 'tutor', pass, phone };
+            }
+
+            localStorage.setItem('skylar_users_v16', JSON.stringify(users));
+            closeTutorModal();
+            renderTutorManagement();
+            initTutorSelect();
+        }
+
+        function deleteTutor(u) {
+            if (confirm(`確定要刪除導師 ${users[u].name} 嗎？`)) {
+                delete users[u];
+                localStorage.setItem('skylar_users_v16', JSON.stringify(users));
+                renderTutorManagement();
+                initTutorSelect();
+            }
+        }
+
+        function exportCSV() {
+            let csv = "日期,導師,時段,狀態\n";
+            Object.keys(submissions).forEach(d => {
+                Object.keys(submissions[d]).forEach(t => {
+                    Object.keys(submissions[d][t]).forEach(s => {
+                        csv += `${d},${users[t] ? users[t].name : t},${s},${submissions[d][t][s]}\n`;
+                    });
+                });
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `Skylar_Weekly_Roster_${currentYear}_${currentMonth+1}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
