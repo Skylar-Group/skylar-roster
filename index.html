@@ -22,7 +22,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
-                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 v16.0 (彈窗佈局優化版)</p>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (Google Sheets 實時同步修正版)</p>
                 </div>
             </div>
 
@@ -73,10 +73,8 @@
                 </form>
 
                 <div class="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-500 space-y-2">
-                    <p class="font-semibold text-slate-700">預設測試帳號：</p>
+                    <p class="font-semibold text-slate-700">測試/管理員帳號：</p>
                     <div class="bg-slate-50 p-3 rounded-lg space-y-1 font-mono">
-                        <p><span class="text-slate-400">導師:</span> tutor1 / 1234 (陳大文)</p>
-                        <p><span class="text-slate-400">導師:</span> tutor2 / 1234 (張小明)</p>
                         <p><span class="text-slate-400">管理員:</span> admin / admin123</p>
                     </div>
                 </div>
@@ -139,6 +137,10 @@
                     <p class="text-slate-300 text-sm mt-1">審批完畢後，可以月曆型態將全月班次一鍵發送 WhatsApp 予導師。</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <button onclick="clearAllData()" class="bg-rose-600 hover:bg-rose-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center space-x-1.5 shadow">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>清空測試排班資料</span>
+                    </button>
                     <button onclick="openWhatsAppModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center space-x-1.5 shadow">
                         <i data-lucide="send" class="w-4 h-4"></i>
                         <span>WhatsApp 發送月曆更表圖片</span>
@@ -339,10 +341,9 @@
         </div>
     </div>
 
-    <!-- MODAL 3: VISUAL CALENDAR IMAGE EXPORT FOR WHATSAPP (完全解決頂部遮擋問題) -->
+    <!-- MODAL 3: VISUAL CALENDAR IMAGE EXPORT FOR WHATSAPP -->
     <div id="whatsappModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-8 pb-12 overflow-y-auto">
         <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col my-auto border border-slate-100">
-            <!-- Header (Always Visible) -->
             <div class="flex justify-between items-center border-b pb-3 flex-shrink-0">
                 <div class="flex items-center space-x-2">
                     <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
@@ -356,7 +357,6 @@
                 <button onclick="closeWhatsAppModal()" class="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg transition"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
-            <!-- Controls (Select Target) -->
             <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs flex-shrink-0">
                 <div class="flex items-center space-x-2">
                     <label class="font-bold text-slate-700">更表對象：</label>
@@ -367,7 +367,6 @@
                 <span class="text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-full text-[11px]">可直接下載 PNG 圖片傳送至 WhatsApp</span>
             </div>
 
-            <!-- Scrollable Canvas Area -->
             <div class="border rounded-2xl p-4 bg-slate-100 overflow-x-auto overflow-y-auto flex-grow shadow-inner">
                 <div id="visualCalendarExportCanvas" class="bg-white p-6 rounded-xl min-w-[760px] font-sans shadow-sm border">
                     <div class="text-center mb-4 border-b pb-3">
@@ -375,7 +374,6 @@
                         <p class="text-xs text-slate-500 mt-0.5" id="visualExportSubtitle">2026年10月份 官方核准時間表</p>
                     </div>
 
-                    <!-- Mon-Sun Header -->
                     <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase mb-2">
                         <div class="py-1.5 bg-slate-100 rounded text-slate-700">一 (MON)</div>
                         <div class="py-1.5 bg-slate-100 rounded text-slate-700">二 (TUE)</div>
@@ -386,7 +384,6 @@
                         <div class="py-1.5 bg-rose-50 text-rose-600 rounded">日 (SUN)</div>
                     </div>
 
-                    <!-- Month Grid -->
                     <div id="visualExportGrid" class="grid grid-cols-7 gap-2"></div>
 
                     <div class="mt-4 pt-3 border-t text-slate-400 text-[10px] flex justify-between items-center">
@@ -396,7 +393,6 @@
                 </div>
             </div>
 
-            <!-- Footer Actions -->
             <div class="flex justify-end space-x-3 pt-3 border-t flex-shrink-0">
                 <button onclick="closeWhatsAppModal()" class="px-4 py-2 border rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">取消</button>
                 <button onclick="downloadCalendarImage()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow flex items-center space-x-2 transition">
@@ -447,6 +443,8 @@
 
     <!-- SCRIPT LOGIC -->
     <script>
+        const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
+
         const ALL_AVAILABLE_SLOTS = [
             '09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00',
             '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00',
@@ -454,9 +452,6 @@
         ];
 
         const DEFAULT_USERS = {
-            "tutor1": { name: "陳大文 (Chan Tai Man)", subjects: "小學數學 / 英文", role: "tutor", pass: "1234", phone: "91234567" },
-            "tutor2": { name: "張小明 (Cheung Siu Ming)", subjects: "高中物理 / 化學", role: "tutor", pass: "1234", phone: "98765432" },
-            "tutor3": { name: "李老師 (Miss Lee)", subjects: "初初中文 / 歷史", role: "tutor", pass: "1234", phone: "90001111" },
             "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" }
         };
 
@@ -465,34 +460,74 @@
             "2026-10-18": "重陽節"
         };
 
-        let users = JSON.parse(localStorage.getItem('skylar_users_v16') || JSON.stringify(DEFAULT_USERS));
+        let users = JSON.parse(localStorage.getItem('skylar_users_v17') || JSON.stringify(DEFAULT_USERS));
         let currentUser = null;
         let currentYear = 2026;
         let currentMonth = 9; // Oct (0-indexed 9)
         let targetSlotDate = null;
         let targetDispatchDate = null;
 
-        let daysConfig = JSON.parse(localStorage.getItem('skylar_days_config_v16') || '{}');
-        let customSlots = JSON.parse(localStorage.getItem('skylar_custom_slots_v16') || '{}');
-        let submissions = JSON.parse(localStorage.getItem('skylar_weekly_submissions_v16') || JSON.stringify({
-            "2026-10-02": { "tutor1": { "16:00-20:00": "approved" }, "tutor2": { "16:00-20:00": "approved" } },
-            "2026-10-03": { 
-                "tutor1": { "10:00-11:00": "approved", "11:00-12:00": "approved", "12:00-13:00": "approved", "13:00-14:00": "approved" } 
-            },
-            "2026-10-05": { "tutor1": { "16:00-20:00": "approved" }, "tutor3": { "16:00-20:00": "approved" } },
-            "2026-10-07": {
-                "tutor1": { "15:00-20:00": "approved", "16:00-20:00": "pending" },
-                "tutor2": { "15:00-20:00": "pending", "16:00-20:00": "approved" },
-                "tutor3": { "16:00-20:00": "approved" }
-            },
-            "2026-10-08": { "tutor1": { "16:00-20:00": "pending" } }
-        }));
+        let daysConfig = JSON.parse(localStorage.getItem('skylar_days_config_v17') || '{}');
+        let customSlots = JSON.parse(localStorage.getItem('skylar_custom_slots_v17') || '{}');
+        let submissions = JSON.parse(localStorage.getItem('skylar_weekly_submissions_v17') || '{}');
 
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
+            fetchCloudData();
+        });
+
+        // 核心：從 Google Sheets 同步資料
+        function fetchCloudData() {
+            fetch(`${GOOGLE_APP_SCRIPT_URL}?action=getData`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data) {
+                        if (data.users && Object.keys(data.users).length > 0) {
+                            users = data.users;
+                            localStorage.setItem('skylar_users_v17', JSON.stringify(users));
+                        }
+                        if (data.submissions) {
+                            submissions = data.submissions;
+                            localStorage.setItem('skylar_weekly_submissions_v17', JSON.stringify(submissions));
+                        }
+                        if (data.daysConfig) {
+                            daysConfig = data.daysConfig;
+                            localStorage.setItem('skylar_days_config_v17', JSON.stringify(daysConfig));
+                        }
+                    }
+                    checkLoginState();
+                })
+                .catch(err => {
+                    console.log("Cloud load failed, using local storage", err);
+                    checkLoginState();
+                });
+        }
+
+        // 核心：推送完整資料至 Google Sheets 備份
+        function syncCloudData() {
+            localStorage.setItem('skylar_users_v17', JSON.stringify(users));
+            localStorage.setItem('skylar_weekly_submissions_v17', JSON.stringify(submissions));
+            localStorage.setItem('skylar_days_config_v17', JSON.stringify(daysConfig));
+
+            const payload = {
+                type: 'saveAll',
+                users: users,
+                submissions: submissions,
+                daysConfig: daysConfig
+            };
+
+            fetch(GOOGLE_APP_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(() => console.log("Cloud sync requested."));
+        }
+
+        function checkLoginState() {
             const saved = localStorage.getItem('skylar_logged_user');
             if (saved && users[saved]) loginUser(saved);
-        });
+        }
 
         function handleLogin(e) {
             e.preventDefault();
@@ -538,6 +573,15 @@
             document.getElementById('loginSection').classList.remove('hidden');
         }
 
+        function clearAllData() {
+            if (confirm("確定要清空所有測試的排班/派更資料嗎？導師帳號將會予以保留。")) {
+                submissions = {};
+                syncCloudData();
+                renderWeeklyMatrix();
+                alert("已成功清空所有排班資料！");
+            }
+        }
+
         function getDateKey(year, month, day) {
             return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
@@ -562,7 +606,7 @@
             if (currentMonth > 11) { currentMonth = 0; currentYear++; }
             else if (currentMonth < 0) { currentMonth = 11; currentYear--; }
 
-            if (users[currentUser].role === 'admin') {
+            if (users[currentUser] && users[currentUser].role === 'admin') {
                 renderWeeklyMatrix();
                 renderAdminDaysConfig();
             } else {
@@ -679,14 +723,14 @@
         function requestLeave(dateKey, slot) {
             if (confirm(`確定要為 ${dateKey} (${slot}) 申請請假嗎？申請需由 Admin 審批。`)) {
                 submissions[dateKey][currentUser][slot] = 'leave_pending';
-                localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+                syncCloudData();
                 renderTutorCalendar();
             }
         }
 
         function saveTutorAvailability() {
-            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
-            alert('成功儲存報更資料！');
+            syncCloudData();
+            alert('成功儲存報更資料並同步至雲端！');
         }
 
         function notifyAdminViaWA() {
@@ -944,8 +988,8 @@
                 submissions[dateKey][tutorKey][slot] = newStatus;
             }
 
-            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
-            openDispatchModal(dateKey); // Re-render modal instantly
+            syncCloudData();
+            openDispatchModal(dateKey);
         }
 
         function batchApproveAll() {
@@ -960,7 +1004,7 @@
                     });
                 });
             });
-            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            syncCloudData();
             alert(`已成功一鍵核准 ${count} 項待審批更次！`);
             renderWeeklyMatrix();
         }
@@ -977,7 +1021,7 @@
                     });
                 });
             });
-            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            syncCloudData();
             alert(`已一鍵拒絕 ${count} 項待審批更次。`);
             renderWeeklyMatrix();
         }
@@ -996,7 +1040,7 @@
                 }
             });
 
-            localStorage.setItem('skylar_weekly_submissions_v16', JSON.stringify(submissions));
+            syncCloudData();
             alert(`已核准導師 ${tutorName} 的全月所有報更！`);
             renderWeeklyMatrix();
         }
@@ -1062,7 +1106,7 @@
             if (recipient === 'ALL_GROUP') {
                 subtitle.innerText = `${currentYear}年${currentMonth + 1}月份 全體導師官方核准更表`;
             } else {
-                subtitle.innerText = `${currentYear}年${currentMonth + 1}月份 個人核准更表 (${users[recipient].name})`;
+                subtitle.innerText = `${currentYear}年${currentMonth + 1}月份 個人核准更表 (${users[recipient] ? users[recipient].name : ''})`;
             }
 
             const grid = document.getElementById('visualExportGrid');
@@ -1213,7 +1257,7 @@
 
         function toggleDayStatus(dateKey, currentOpenState) {
             daysConfig[dateKey] = !currentOpenState;
-            localStorage.setItem('skylar_days_config_v16', JSON.stringify(daysConfig));
+            syncCloudData();
             renderAdminDaysConfig();
         }
 
@@ -1257,7 +1301,7 @@
             });
 
             customSlots[targetSlotDate] = selected;
-            localStorage.setItem('skylar_custom_slots_v16', JSON.stringify(customSlots));
+            syncCloudData();
             closeCheckboxSlotModal();
             renderAdminDaysConfig();
         }
@@ -1333,16 +1377,17 @@
                 users[username] = { name, subjects, role: 'tutor', pass, phone };
             }
 
-            localStorage.setItem('skylar_users_v16', JSON.stringify(users));
+            syncCloudData();
             closeTutorModal();
             renderTutorManagement();
             initTutorSelect();
+            alert("導師資料已成功儲存並同步至 Google Sheets！");
         }
 
         function deleteTutor(u) {
             if (confirm(`確定要刪除導師 ${users[u].name} 嗎？`)) {
                 delete users[u];
-                localStorage.setItem('skylar_users_v16', JSON.stringify(users));
+                syncCloudData();
                 renderTutorManagement();
                 initTutorSelect();
             }
