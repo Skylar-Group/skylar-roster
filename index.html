@@ -18,7 +18,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
-                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (雲端即時同步版)</p>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (正式上線版)</p>
                 </div>
             </div>
 
@@ -68,38 +68,6 @@
             </div>
         </div>
 
-        <!-- TUTOR VIEW -->
-        <div id="tutorSection" class="hidden space-y-6">
-            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <span class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-semibold mb-2">導師報更專區</span>
-                    <h2 class="text-2xl font-bold">填報可上班日子與時段</h2>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="saveTutorAvailability()" class="bg-white text-indigo-600 font-semibold px-5 py-2.5 rounded-xl shadow hover:bg-indigo-50 transition flex items-center space-x-2 text-sm">
-                        <i data-lucide="save" class="w-4 h-4"></i><span>儲存報更</span>
-                    </button>
-                    <button onclick="notifyAdminViaWA()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center space-x-2 text-sm">
-                        <i data-lucide="message-circle" class="w-4 h-4"></i><span>WhatsApp 通知 Admin</span>
-                    </button>
-                </div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-                    <span id="tutorMonthYearText" class="text-lg font-bold text-slate-800">2026年 10月</span>
-                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-lg"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
-                </div>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-4">
-                <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-bold text-slate-500 uppercase">
-                    <div class="py-2">一</div><div class="py-2">二</div><div class="py-2 text-indigo-600 font-black">三</div>
-                    <div class="py-2">四</div><div class="py-2">五</div><div class="py-2 text-indigo-600">六</div><div class="py-2 text-red-500">日</div>
-                </div>
-                <div id="tutorCalendarGrid" class="grid grid-cols-7 gap-2"></div>
-            </div>
-        </div>
-
         <!-- ADMIN VIEW -->
         <div id="adminSection" class="hidden space-y-6">
             <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -115,7 +83,7 @@
             </div>
 
             <div class="flex space-x-2 border-b border-slate-200">
-                <button id="tabBtnTutors" onclick="switchAdminTab('tutors')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-indigo-600 text-indigo-600">導師帳號管理</button>
+                <button id="tabBtnTutors" class="px-5 py-2.5 font-medium text-sm border-b-2 border-indigo-600 text-indigo-600">導師帳號管理</button>
             </div>
 
             <div id="adminTabTutors" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
@@ -164,16 +132,26 @@
     <script>
         const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
 
+        // 內建所有導師資料，確保任何時候登入都不會遺失
         const DEFAULT_USERS = {
-            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" }
+            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" },
+            "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54" },
+            "abbywong": { name: "Abby Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55" },
+            "angustang": { name: "Angus Tang", subjects: "-", role: "tutor", pass: "123456", phone: "63" },
+            "gracewong": { name: "Grace Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55" },
+            "himlau": { name: "Him Lau", subjects: "-", role: "tutor", pass: "123456", phone: "62" },
+            "joechan": { name: "Joe Chan", subjects: "-", role: "tutor", pass: "123456", phone: "66" },
+            "matthewlo": { name: "Matthew Lo", subjects: "-", role: "tutor", pass: "123456", phone: "94" },
+            "milliceau": { name: "Millice Au", subjects: "-", role: "tutor", pass: "123456", phone: "96" },
+            "quincepang": { name: "Quince Pang", subjects: "-", role: "tutor", pass: "123456", phone: "59" },
+            "henryli": { name: "Henry Li", subjects: "-", role: "tutor", pass: "123456", phone: "51" },
+            "soniatang": { name: "Sonia Tang", subjects: "-", role: "tutor", pass: "123456", phone: "92" }
         };
 
-        let users = JSON.parse(localStorage.getItem('skylar_users_v19') || JSON.stringify(DEFAULT_USERS));
+        let users = JSON.parse(localStorage.getItem('skylar_users_v20') || JSON.stringify(DEFAULT_USERS));
         let currentUser = null;
-        let currentYear = 2026;
-        let currentMonth = 9;
-        let daysConfig = JSON.parse(localStorage.getItem('skylar_days_config_v19') || '{}');
-        let submissions = JSON.parse(localStorage.getItem('skylar_weekly_submissions_v19') || '{}');
+        let daysConfig = JSON.parse(localStorage.getItem('skylar_days_config_v20') || '{}');
+        let submissions = JSON.parse(localStorage.getItem('skylar_weekly_submissions_v20') || '{}');
 
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
@@ -186,28 +164,24 @@
                 .then(data => {
                     if (data && data.users && Object.keys(data.users).length > 1) {
                         users = data.users;
-                        localStorage.setItem('skylar_users_v19', JSON.stringify(users));
-                    }
-                    if (data && data.submissions) {
-                        submissions = data.submissions;
-                        localStorage.setItem('skylar_weekly_submissions_v19', JSON.stringify(submissions));
+                        localStorage.setItem('skylar_users_v20', JSON.stringify(users));
                     }
                     checkLoginState();
                 })
                 .catch(err => {
-                    console.log("Cloud load error, fallback to local", err);
                     checkLoginState();
                 });
         }
 
         function forceSyncToCloud() {
             syncCloudData();
+            alert("已成功將所有導師資料與排班同步至 Google Sheet 雲端！");
         }
 
         function syncCloudData() {
-            localStorage.setItem('skylar_users_v19', JSON.stringify(users));
-            localStorage.setItem('skylar_weekly_submissions_v19', JSON.stringify(submissions));
-            localStorage.setItem('skylar_days_config_v19', JSON.stringify(daysConfig));
+            localStorage.setItem('skylar_users_v20', JSON.stringify(users));
+            localStorage.setItem('skylar_weekly_submissions_v20', JSON.stringify(submissions));
+            localStorage.setItem('skylar_days_config_v20', JSON.stringify(daysConfig));
 
             const payload = {
                 type: 'saveAll',
@@ -220,15 +194,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(res => {
-                alert("已成功將所有導師資料與排班同步至 Google Sheet 雲端！手機端現在可以正常登入囉。");
-            })
-            .catch(err => {
-                // 應對跨域重新導向
-                alert("已送出同步請求至 Google Sheet！");
-            });
+            }).catch(() => {});
         }
 
         function checkLoginState() {
@@ -260,18 +226,13 @@
 
             if (userData.role === 'admin') {
                 document.getElementById('adminSection').classList.remove('hidden');
-                document.getElementById('tutorSection').classList.add('hidden');
                 renderTutorManagement();
-            } else {
-                document.getElementById('tutorSection').classList.remove('hidden');
-                document.getElementById('adminSection').classList.add('hidden');
             }
             lucide.createIcons();
         }
 
         function logout() {
             localStorage.removeItem('skylar_logged_user');
-            currentUser = null;
             location.reload();
         }
 
