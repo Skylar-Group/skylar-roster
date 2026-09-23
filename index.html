@@ -189,6 +189,16 @@
                         <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-200 rounded-lg"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                     </div>
                 </div>
+                <!-- 星期標題列 (一至日) -->
+                <div class="grid grid-cols-7 gap-3 text-center text-xs font-bold text-slate-600 uppercase">
+                    <div class="py-2 bg-slate-100 rounded-lg">一 (Mon)</div>
+                    <div class="py-2 bg-slate-100 rounded-lg">二 (Tue)</div>
+                    <div class="py-2 bg-indigo-100 text-indigo-800 rounded-lg font-black">三 (Wed)</div>
+                    <div class="py-2 bg-slate-100 rounded-lg">四 (Thu)</div>
+                    <div class="py-2 bg-slate-100 rounded-lg">五 (Fri)</div>
+                    <div class="py-2 bg-slate-100 rounded-lg text-indigo-600">六 (Sat)</div>
+                    <div class="py-2 bg-slate-100 rounded-lg text-red-500">日 (Sun)</div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="adminDaysToggleGrid"></div>
             </div>
 
@@ -741,7 +751,7 @@
                 Object.keys(submissions[d]).forEach(t => {
                     Object.keys(submissions[d][t]).forEach(s => { 
                         if (submissions[d][t][s] === 'pending' || submissions[d][t][s] === 'leave_pending') {
-                            if (submissions[d][t][s] === 'leave_pending') delete submissions[d][t][s]; // 請假批核即刪除更次
+                            if (submissions[d][t][s] === 'leave_pending') delete submissions[d][t][s];
                             else submissions[d][t][s] = 'approved';
                         }
                     });
