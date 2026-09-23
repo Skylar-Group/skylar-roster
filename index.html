@@ -57,7 +57,7 @@
                 <form onsubmit="handleLogin(event)" class="space-y-5">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">使用者名稱 / 帳號</label>
-                        <input type="text" id="loginUsername" required placeholder="例如：shanyeung 或 admin" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm">
+                        <input type="text" id="loginUsername" required placeholder="請輸入導師名稱" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">密碼</label>
@@ -465,7 +465,6 @@
         
         function isDayOpen(k) { 
             if (daysConfig.hasOwnProperty(k)) return daysConfig[k];
-            // 若未明確設定，公眾假期預設為休館 (false)，一般日子預設為開放 (true)
             return !HK_HOLIDAYS_2026[k]; 
         }
         
@@ -676,6 +675,7 @@
                                     const name = users[tKey] ? users[tKey].name.split(' ')[0] : tKey;
                                     if (st === 'approved') tList.push(`<span class="bg-emerald-100 text-emerald-800 px-1 rounded text-[9px] font-bold">${name}✓</span>`);
                                     else if (st === 'pending') tList.push(`<span class="bg-amber-100 text-amber-800 px-1 rounded text-[9px]">${name}(待)</span>`);
+                                    else if (st === 'leave_pending') tList.push(`<span class="bg-rose-100 text-rose-800 px-1 rounded text-[9px] font-bold">${name}(請假審)</span>`);
                                 }
                             });
                         }
@@ -720,6 +720,7 @@
         function renderCellAction(dateKey, tKey, slot, st) {
             if (st === 'approved') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', null)" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-bold">已核准 (取消)</button>`;
             if (st === 'pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', 'approved')" class="bg-amber-500 text-white px-2 py-1 rounded text-[10px] font-bold">待審批 (點擊核准)</button>`;
+            if (st === 'leave_pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', null)" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-bold">請假審中 (點擊批準)</button>`;
             return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', 'approved')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px]">+ 派更</button>`;
         }
 
@@ -738,10 +739,15 @@
         function batchApproveAll() {
             Object.keys(submissions).forEach(d => {
                 Object.keys(submissions[d]).forEach(t => {
-                    Object.keys(submissions[d][t]).forEach(s => { if (submissions[d][t][s] === 'pending') submissions[d][t][s] = 'approved'; });
+                    Object.keys(submissions[d][t]).forEach(s => { 
+                        if (submissions[d][t][s] === 'pending' || submissions[d][t][s] === 'leave_pending') {
+                            if (submissions[d][t][s] === 'leave_pending') delete submissions[d][t][s]; // 請假批核即刪除更次
+                            else submissions[d][t][s] = 'approved';
+                        }
+                    });
                 });
             });
-            syncCloudData(); renderWeeklyMatrix(); alert("已全部核准！");
+            syncCloudData(); renderWeeklyMatrix(); alert("已全部批核！");
         }
         function batchRejectAll() {
             Object.keys(submissions).forEach(d => {
@@ -843,7 +849,6 @@
 
         function toggleDay(dateKey, state) { 
             daysConfig[dateKey] = !state; 
-            // 當 Admin 切換為「開放」時，若該日原本沒有自訂時段，自動賦予預設時段以便直接排班
             if (!customSlots[dateKey] && !state) {
                 const dow = new Date(dateKey).getDay();
                 if (dow === 0 || dow === 6) customSlots[dateKey] = ['10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'];
@@ -881,7 +886,6 @@
                 return;
             }
             customSlots[targetSlotDate] = selected;
-            // 只要設定了時段，自動將該日設為開放 (true)，即使是公眾假期也代表如常開放
             daysConfig[targetSlotDate] = true;
             syncCloudData(); 
             closeCheckboxSlotModal(); 
