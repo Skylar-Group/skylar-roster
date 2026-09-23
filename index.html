@@ -22,7 +22,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
-                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (最終修正版)</p>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統</p>
                 </div>
             </div>
 
@@ -468,14 +468,11 @@
             return ['16:00-20:00'];
         }
 
-        // 輔助函數：將時段陣列簡化為區間顯示（例如 11:00-17:00）
         function getFormattedSlotRange(slots) {
             if (!slots || slots.length === 0) return '無時段';
-            if (slots.length === 1) return slots[0];
-            // 若包含多個連續時段，取最早開始與最晚結束
             let startTimes = slots.map(s => s.split('-')[0]);
             let endTimes = slots.map(s => s.split('-')[1]);
-            return `${startTimes[0]}-${endTimes[endTimes.length - 1]}`;
+            return `${startTimes[0]} - ${endTimes[endTimes.length - 1]}`;
         }
 
         function changeMonth(delta) {
