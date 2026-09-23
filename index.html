@@ -239,7 +239,10 @@
     <div id="checkboxSlotModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
             <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-lg font-bold text-slate-800">設定開放班次時段</h3>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">設定開放班次時段</h3>
+                    <p id="modalDateSubtitle" class="text-xs font-bold text-indigo-600 mt-0.5">2026-10-01 (國慶日)</p>
+                </div>
                 <button onclick="closeCheckboxSlotModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div id="slotCheckboxesContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[260px] overflow-y-auto p-1"></div>
@@ -459,7 +462,12 @@
         }
 
         function getDateKey(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
-        function isDayOpen(k) { return daysConfig.hasOwnProperty(k) ? daysConfig[k] : !HK_HOLIDAYS_2026[k]; }
+        
+        function isDayOpen(k) { 
+            if (daysConfig.hasOwnProperty(k)) return daysConfig[k];
+            // 若未明確設定，公眾假期預設為休館 (false)，一般日子預設為開放 (true)
+            return !HK_HOLIDAYS_2026[k]; 
+        }
         
         function getDaySlots(k, dow) {
             if (customSlots[k] && customSlots[k].length > 0) return customSlots[k];
@@ -468,11 +476,8 @@
             return ['16:00-20:00'];
         }
 
-        // 智慧時段顯示：連續時段自動合併為區間，不連續則分開顯示
         function getFormattedSlotRange(slots) {
             if (!slots || slots.length === 0) return '無時段';
-            
-            // 轉成分鐘計算以便判斷連續性
             let parsed = slots.map(s => {
                 let parts = s.split('-');
                 let startParts = parts[0].split(':');
@@ -531,10 +536,11 @@
                 const dow = new Date(currentYear, currentMonth, day).getDay();
                 const open = isDayOpen(dateKey);
                 const slots = getDaySlots(dateKey, dow);
+                const holidayName = HK_HOLIDAYS_2026[dateKey];
 
                 const card = document.createElement('div');
                 card.className = `p-2.5 rounded-xl border flex flex-col justify-between min-h-[110px] ${!open ? 'bg-slate-100 text-slate-400' : 'bg-white shadow-sm'}`;
-                let html = `<div class="font-bold text-xs">${day}日</div>`;
+                let html = `<div class="flex justify-between items-center"><span class="font-bold text-xs">${day}日</span>${holidayName ? `<span class="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">${holidayName}</span>` : ''}</div>`;
                 if (!open) {
                     html += `<div class="text-[11px] text-slate-400 py-2">休館</div>`;
                 } else {
@@ -653,10 +659,11 @@
                 const dow = new Date(currentYear, currentMonth, day).getDay();
                 const open = isDayOpen(dateKey);
                 const slots = getDaySlots(dateKey, dow);
+                const holidayName = HK_HOLIDAYS_2026[dateKey];
 
                 const card = document.createElement('div');
                 card.className = `p-3 rounded-2xl border flex flex-col justify-between min-h-[140px] ${!open ? 'bg-rose-50/40' : 'bg-white'}`;
-                let html = `<div class="flex justify-between items-center border-b pb-1 mb-2"><span class="text-xs font-bold">${day}日</span><span class="text-[10px] px-2 py-0.5 rounded font-bold ${open ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">${open ? '開放' : '休館'}</span></div>`;
+                let html = `<div class="flex justify-between items-center border-b pb-1 mb-2"><div class="flex items-center space-x-1.5"><span class="text-xs font-bold">${day}日</span>${holidayName ? `<span class="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">${holidayName}</span>` : ''}</div><span class="text-[10px] px-2 py-0.5 rounded font-bold ${open ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">${open ? '開放' : '休館'}</span></div>`;
                 if (open) {
                     html += `<div class="text-[10px] text-indigo-600 font-bold mb-1">時間: ${getFormattedSlotRange(slots)}</div>`;
                     html += `<div class="space-y-1.5 mb-2">`;
@@ -817,12 +824,13 @@
                 const dow = new Date(currentYear, currentMonth, day).getDay();
                 const slots = getDaySlots(dateKey, dow);
                 const rangeText = getFormattedSlotRange(slots);
+                const holidayName = HK_HOLIDAYS_2026[dateKey];
 
                 const card = document.createElement('div');
                 card.className = `p-3 rounded-xl border flex flex-col justify-between min-h-[110px] ${open ? 'bg-emerald-50/40 border-emerald-200' : 'bg-rose-50/40 border-rose-200'}`;
                 card.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold">${day}日</span>
+                        <div class="flex items-center space-x-1.5"><span class="text-xs font-bold">${day}日</span>${holidayName ? `<span class="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">${holidayName}</span>` : ''}</div>
                         <button onclick="toggleDay('${dateKey}', ${open})" class="text-[10px] px-2 py-0.5 rounded font-bold ${open ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${open ? '開放' : '休館'}</button>
                     </div>
                     ${open ? `<div class="text-[10px] text-indigo-700 font-bold my-1">時間: ${rangeText}</div>` : ''}
@@ -833,13 +841,27 @@
             lucide.createIcons();
         }
 
-        function toggleDay(dateKey, state) { daysConfig[dateKey] = !state; syncCloudData(); renderAdminDaysConfig(); }
+        function toggleDay(dateKey, state) { 
+            daysConfig[dateKey] = !state; 
+            // 當 Admin 切換為「開放」時，若該日原本沒有自訂時段，自動賦予預設時段以便直接排班
+            if (!customSlots[dateKey] && !state) {
+                const dow = new Date(dateKey).getDay();
+                if (dow === 0 || dow === 6) customSlots[dateKey] = ['10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'];
+                else if (dow === 3) customSlots[dateKey] = ['15:00-20:00', '16:00-20:00'];
+                else customSlots[dateKey] = ['16:00-20:00'];
+            }
+            syncCloudData(); 
+            renderAdminDaysConfig(); 
+        }
         
         function openCheckboxSlotModal(dateKey) {
             targetSlotDate = dateKey;
             const container = document.getElementById('slotCheckboxesContainer');
             const dow = new Date(dateKey).getDay();
             const currentDaySlots = getDaySlots(dateKey, dow);
+            const holidayName = HK_HOLIDAYS_2026[dateKey];
+
+            document.getElementById('modalDateSubtitle').innerText = `${dateKey} ${holidayName ? `(公眾假期: ${holidayName})` : ''}`;
 
             container.innerHTML = ALL_AVAILABLE_SLOTS.map(s => `
                 <label class="flex items-center space-x-2 p-2 border rounded text-xs cursor-pointer hover:bg-slate-50">
@@ -859,10 +881,12 @@
                 return;
             }
             customSlots[targetSlotDate] = selected;
+            // 只要設定了時段，自動將該日設為開放 (true)，即使是公眾假期也代表如常開放
+            daysConfig[targetSlotDate] = true;
             syncCloudData(); 
             closeCheckboxSlotModal(); 
             renderAdminDaysConfig();
-            alert('時段設定已儲存！');
+            alert('時段設定已儲存，該日已自動設為開放！');
         }
 
         function renderTutorManagement() {
@@ -937,7 +961,7 @@
             closeTutorModal();
             renderTutorManagement();
             initTutorSelect();
-            alert("導師資料已成功儲存！");
+            alert("導師資料已成功儲存並同步至 Google Sheet！");
         }
 
         function deleteTutor(u) {
@@ -946,7 +970,7 @@
                 syncCloudData();
                 renderTutorManagement();
                 initTutorSelect();
-                alert("已成功刪除該導師帳戶。");
+                alert("已成功刪除該導師戶口。");
             }
         }
     </script>
