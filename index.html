@@ -22,18 +22,14 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
-                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (穩定登入修復版)</p>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (最終修正版)</p>
                 </div>
             </div>
 
             <div id="userInfoHeader" class="hidden flex items-center space-x-4">
-                <div class="text-right">
-                    <span id="currentUserName" class="block font-semibold text-slate-800 text-sm"></span>
-                    <span id="currentUserRole" class="block text-xs text-slate-500"></span>
-                </div>
                 <button onclick="logout()" class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition font-medium">
                     <i data-lucide="log-out" class="w-4 h-4"></i>
-                    <span>登出</span>
+                    <span>登出系統</span>
                 </button>
             </div>
         </div>
@@ -328,7 +324,6 @@
     <script>
         const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
 
-        // 預設 12 位導師與管理員名單
         const DEFAULT_USERS = {
             "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" },
             "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54" },
@@ -378,6 +373,7 @@
                         }
                         if (data.submissions) submissions = data.submissions;
                         if (data.daysConfig) daysConfig = data.daysConfig;
+                        if (data.customSlots) customSlots = data.customSlots;
                     }
                     checkLoginState();
                 })
@@ -397,7 +393,8 @@
                 type: 'saveAll',
                 users: users,
                 submissions: submissions,
-                daysConfig: daysConfig
+                daysConfig: daysConfig,
+                customSlots: customSlots
             };
 
             fetch(GOOGLE_APP_SCRIPT_URL, {
@@ -433,8 +430,6 @@
 
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('userInfoHeader').classList.remove('hidden');
-            document.getElementById('currentUserName').innerText = userData.name;
-            document.getElementById('currentUserRole').innerText = userData.role === 'admin' ? '系統管理員' : '兼職導師';
 
             if (userData.role === 'admin') {
                 document.getElementById('adminSection').classList.remove('hidden');
@@ -465,11 +460,22 @@
 
         function getDateKey(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
         function isDayOpen(k) { return daysConfig.hasOwnProperty(k) ? daysConfig[k] : !HK_HOLIDAYS_2026[k]; }
+        
         function getDaySlots(k, dow) {
             if (customSlots[k]) return customSlots[k];
             if (dow === 0 || dow === 6) return ['10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'];
             if (dow === 3) return ['15:00-20:00', '16:00-20:00'];
             return ['16:00-20:00'];
+        }
+
+        // 輔助函數：將時段陣列簡化為區間顯示（例如 11:00-17:00）
+        function getFormattedSlotRange(slots) {
+            if (!slots || slots.length === 0) return '無時段';
+            if (slots.length === 1) return slots[0];
+            // 若包含多個連續時段，取最早開始與最晚結束
+            let startTimes = slots.map(s => s.split('-')[0]);
+            let endTimes = slots.map(s => s.split('-')[1]);
+            return `${startTimes[0]}-${endTimes[endTimes.length - 1]}`;
         }
 
         function changeMonth(delta) {
@@ -502,11 +508,12 @@
 
                 const card = document.createElement('div');
                 card.className = `p-2.5 rounded-xl border flex flex-col justify-between min-h-[110px] ${!open ? 'bg-slate-100 text-slate-400' : 'bg-white shadow-sm'}`;
-                let html = `<div class="font-bold text-xs">${day}</div>`;
+                let html = `<div class="font-bold text-xs">${day}日</div>`;
                 if (!open) {
                     html += `<div class="text-[11px] text-slate-400 py-2">休館</div>`;
                 } else {
-                    html += `<div class="space-y-1 mt-1.5" id="slot-container-${dateKey}">`;
+                    html += `<div class="text-[10px] text-indigo-600 font-bold mb-1">${getFormattedSlotRange(slots)}</div>`;
+                    html += `<div class="space-y-1 mt-1" id="slot-container-${dateKey}">`;
                     slots.forEach(slot => {
                         const st = (submissions[dateKey] && submissions[dateKey][currentUser] && submissions[dateKey][currentUser][slot]) || null;
                         html += renderTutorSlotButton(dateKey, slot, st);
@@ -625,6 +632,7 @@
                 card.className = `p-3 rounded-2xl border flex flex-col justify-between min-h-[140px] ${!open ? 'bg-rose-50/40' : 'bg-white'}`;
                 let html = `<div class="flex justify-between items-center border-b pb-1 mb-2"><span class="text-xs font-bold">${day}日</span><span class="text-[10px] px-2 py-0.5 rounded font-bold ${open ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">${open ? '開放' : '休館'}</span></div>`;
                 if (open) {
+                    html += `<div class="text-[10px] text-indigo-600 font-bold mb-1">時間: ${getFormattedSlotRange(slots)}</div>`;
                     html += `<div class="space-y-1.5 mb-2">`;
                     slots.forEach(slot => {
                         let tList = [];
@@ -638,7 +646,9 @@
                                 }
                             });
                         }
-                        html += `<div class="bg-slate-50 p-1 rounded border text-[10px]"><span class="font-bold">${slot}:</span> ${tList.join(' ')}</div>`;
+                        if (tList.length > 0) {
+                            html += `<div class="bg-slate-50 p-1 rounded border text-[10px]"><span class="font-bold">${slot}:</span> ${tList.join(' ')}</div>`;
+                        }
                     });
                     html += `</div><button onclick="openDispatchModal('${dateKey}')" class="w-full text-[10px] bg-indigo-50 border border-indigo-200 py-1 rounded text-indigo-700 font-bold">+ 派更 / 審批</button>`;
                 }
@@ -778,25 +788,55 @@
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateKey = getDateKey(currentYear, currentMonth, day);
                 const open = isDayOpen(dateKey);
+                const dow = new Date(currentYear, currentMonth, day).getDay();
+                const slots = getDaySlots(dateKey, dow);
+                const rangeText = getFormattedSlotRange(slots);
+
                 const card = document.createElement('div');
-                card.className = `p-3 rounded-xl border flex flex-col justify-between min-h-[100px] ${open ? 'bg-emerald-50/40 border-emerald-200' : 'bg-rose-50/40 border-rose-200'}`;
-                card.innerHTML = `<div class="flex justify-between items-center"><span class="text-xs font-bold">${day}日</span><button onclick="toggleDay('${dateKey}', ${open})" class="text-[10px] px-2 py-0.5 rounded font-bold ${open ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${open ? '開放' : '休館'}</button></div><button onclick="openCheckboxSlotModal('${dateKey}')" class="text-[10px] bg-white border py-1 rounded font-bold text-indigo-700">+ 設定時段</button>`;
+                card.className = `p-3 rounded-xl border flex flex-col justify-between min-h-[110px] ${open ? 'bg-emerald-50/40 border-emerald-200' : 'bg-rose-50/40 border-rose-200'}`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold">${day}日</span>
+                        <button onclick="toggleDay('${dateKey}', ${open})" class="text-[10px] px-2 py-0.5 rounded font-bold ${open ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${open ? '開放' : '休館'}</button>
+                    </div>
+                    ${open ? `<div class="text-[10px] text-indigo-700 font-bold my-1">時間: ${rangeText}</div>` : ''}
+                    <button onclick="openCheckboxSlotModal('${dateKey}')" class="text-[10px] bg-white border py-1 rounded font-bold text-indigo-700">+ 設定時段</button>
+                `;
                 grid.appendChild(card);
             }
             lucide.createIcons();
         }
 
         function toggleDay(dateKey, state) { daysConfig[dateKey] = !state; syncCloudData(); renderAdminDaysConfig(); }
+        
         function openCheckboxSlotModal(dateKey) {
             targetSlotDate = dateKey;
             const container = document.getElementById('slotCheckboxesContainer');
-            container.innerHTML = ALL_AVAILABLE_SLOTS.map(s => `<label class="flex items-center space-x-2 p-2 border rounded text-xs"><input type="checkbox" value="${s}" class="slot-cb" ${getDaySlots(dateKey, 1).includes(s) ? 'checked' : ''}><span>${s}</span></label>`).join('');
+            const dow = new Date(dateKey).getDay();
+            const currentDaySlots = getDaySlots(dateKey, dow);
+
+            container.innerHTML = ALL_AVAILABLE_SLOTS.map(s => `
+                <label class="flex items-center space-x-2 p-2 border rounded text-xs cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" value="${s}" class="slot-cb" ${currentDaySlots.includes(s) ? 'checked' : ''}>
+                    <span>${s}</span>
+                </label>
+            `).join('');
             document.getElementById('checkboxSlotModal').classList.remove('hidden');
         }
+
         function closeCheckboxSlotModal() { document.getElementById('checkboxSlotModal').classList.add('hidden'); }
+        
         function saveCheckboxSlots() {
-            customSlots[targetSlotDate] = Array.from(document.querySelectorAll('.slot-cb:checked')).map(cb => cb.value);
-            syncCloudData(); closeCheckboxSlotModal(); renderAdminDaysConfig();
+            const selected = Array.from(document.querySelectorAll('.slot-cb:checked')).map(cb => cb.value);
+            if (selected.length === 0) {
+                alert('請至少選擇一個時段！');
+                return;
+            }
+            customSlots[targetSlotDate] = selected;
+            syncCloudData(); 
+            closeCheckboxSlotModal(); 
+            renderAdminDaysConfig();
+            alert('時段設定已儲存！');
         }
 
         function renderTutorManagement() {
@@ -843,7 +883,6 @@
             document.getElementById('modalTutorUser').disabled = true;
             document.getElementById('modalTutorPhone').value = t.phone || '';
             document.getElementById('modalTutorPass').value = t.pass || '';
-            document.getElementById('tutorModal').classList.add('hidden'); // Fix modal toggle
             document.getElementById('tutorModal').classList.remove('hidden');
         }
 
