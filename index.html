@@ -591,9 +591,9 @@
 
         function saveTutorAvailability() { syncCloudData(); alert('報更成功儲存並同步至雲端！'); }
         function notifyAdminViaWA() {
-            saveTutorAvailability();
-            window.open(`https://api.whatsapp.com/send?phone=852${users['admin'].phone}&text=${encodeURIComponent('【Skylar 導師報更通知】已完成報更，請 Admin 審批。')}`, '_blank');
-        }
+    saveTutorAvailability();
+    window.open(`https://api.whatsapp.com/send?phone=85270712040&text=${encodeURIComponent('【Skylar 導師報更通知】已完成報更，請 Admin 審批。')}`, '_blank');
+}
 
         // --- TUTOR CHANGE OWN PASSWORD ---
         function openChangeMyPasswordModal() {
