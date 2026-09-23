@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skylar Learning Center - 導師報更及排班管理系統</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HTML2Canvas CDN (用於將月曆更表轉為 PNG 圖像) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
@@ -19,7 +22,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
-                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (完整旗艦版)</p>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (正確資料校對版)</p>
                 </div>
             </div>
 
@@ -75,7 +78,7 @@
         <div id="tutorSection" class="hidden space-y-6">
             <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <span class="inline-block px-3 py-1 bg-white/25 rounded-full text-xs font-semibold mb-2">導師報更專區</span>
+                    <span class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-semibold mb-2">導師報更專區</span>
                     <h2 class="text-2xl font-bold">填報可上班日子與時段</h2>
                     <p class="text-indigo-100 text-sm mt-1">提示：已核准之更次不可自行更改，如有特別事故請點擊「請假」。</p>
                 </div>
@@ -94,6 +97,10 @@
                     <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
                     <span id="tutorMonthYearText" class="text-lg font-bold text-slate-800">2026年 10月</span>
                     <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                </div>
+                <div class="flex items-center space-x-4 text-xs font-medium">
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-indigo-600"></span><span class="text-slate-600">已選待審</span></div>
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span><span class="text-slate-600">已核准</span></div>
                 </div>
             </div>
 
@@ -144,9 +151,7 @@
             <div id="adminTabMatrix" class="space-y-4">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-                        <div>
-                            <h3 id="adminMatrixTitle" class="text-xl font-black text-slate-800">2026年 10月 全月排班矩陣總覽</h3>
-                        </div>
+                        <h3 id="adminMatrixTitle" class="text-xl font-black text-slate-800">2026年 10月 全月排班矩陣總覽</h3>
                         <div class="flex flex-wrap items-center gap-2">
                             <button onclick="batchApproveAll()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition">✓ 一鍵核准全部待審</button>
                             <button onclick="batchRejectAll()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold px-4 py-2 rounded-xl transition">一鍵拒絕全部待審</button>
@@ -299,6 +304,7 @@
     <script>
         const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
 
+        // 嚴格校對後的 12 位真實導師資料與電話
         const DEFAULT_USERS = {
             "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" },
             "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54" },
@@ -320,17 +326,16 @@
         ];
         const HK_HOLIDAYS_2026 = { "2026-10-01": "國慶日", "2026-10-18": "重陽節" };
 
-        let localStoredUsers = JSON.parse(localStorage.getItem('skylar_users_v22') || '{}');
-        let users = (Object.keys(localStoredUsers).length > 1) ? localStoredUsers : DEFAULT_USERS;
+        let users = DEFAULT_USERS;
         let currentUser = null;
         let currentYear = 2026;
         let currentMonth = 9;
         let targetSlotDate = null;
         let targetDispatchDate = null;
 
-        let daysConfig = JSON.parse(localStorage.getItem('skylar_days_config_v22') || '{}');
-        let customSlots = JSON.parse(localStorage.getItem('skylar_custom_slots_v22') || '{}');
-        let submissions = JSON.parse(localStorage.getItem('skylar_weekly_submissions_v22') || '{}');
+        let daysConfig = JSON.parse(localStorage.getItem('skylar_days_config_v24') || '{}');
+        let customSlots = JSON.parse(localStorage.getItem('skylar_custom_slots_v24') || '{}');
+        let submissions = JSON.parse(localStorage.getItem('skylar_weekly_submissions_v24') || '{}');
 
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
@@ -344,15 +349,12 @@
                     if (data) {
                         if (data.users && Object.keys(data.users).length > 1) {
                             users = data.users;
-                            localStorage.setItem('skylar_users_v22', JSON.stringify(users));
                         }
                         if (data.submissions) {
                             submissions = data.submissions;
-                            localStorage.setItem('skylar_weekly_submissions_v22', JSON.stringify(submissions));
                         }
                         if (data.daysConfig) {
                             daysConfig = data.daysConfig;
-                            localStorage.setItem('skylar_days_config_v22', JSON.stringify(daysConfig));
                         }
                     }
                     checkLoginState();
@@ -362,13 +364,12 @@
 
         function forceSyncToCloud() {
             syncCloudData();
-            alert("已成功將所有資料同步至 Google Sheet 雲端！");
+            alert("已成功將所有資料強制同步至 Google Sheet 雲端！");
         }
 
         function syncCloudData() {
-            localStorage.setItem('skylar_users_v22', JSON.stringify(users));
-            localStorage.setItem('skylar_weekly_submissions_v22', JSON.stringify(submissions));
-            localStorage.setItem('skylar_days_config_v22', JSON.stringify(daysConfig));
+            localStorage.setItem('skylar_days_config_v24', JSON.stringify(daysConfig));
+            localStorage.setItem('skylar_weekly_submissions_v24', JSON.stringify(submissions));
 
             const payload = {
                 type: 'saveAll',
@@ -386,7 +387,9 @@
 
         function checkLoginState() {
             const saved = localStorage.getItem('skylar_logged_user');
-            if (saved && users[saved]) loginUser(saved);
+            if (saved && users[saved]) {
+                loginUser(saved);
+            }
         }
 
         function handleLogin(e) {
@@ -415,7 +418,7 @@
                 document.getElementById('adminSection').classList.remove('hidden');
                 document.getElementById('tutorSection').classList.add('hidden');
                 initTutorSelect();
-                renderWeeklyMatrix();
+                switchAdminTab('matrix');
             } else {
                 document.getElementById('tutorSection').classList.remove('hidden');
                 document.getElementById('adminSection').classList.add('hidden');
@@ -525,8 +528,10 @@
         // --- ADMIN TABS & MATRIX ---
         function switchAdminTab(tab) {
             ['matrix', 'days', 'tutors'].forEach(t => {
-                document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('hidden', t !== tab);
-                document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`).className = `px-5 py-2.5 font-medium text-sm border-b-2 ${t === tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'} flex items-center space-x-2 whitespace-nowrap`;
+                const el = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (el) el.classList.toggle('hidden', t !== tab);
+                if (btn) btn.className = `px-5 py-2.5 font-medium text-sm border-b-2 ${t === tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'} flex items-center space-x-2 whitespace-nowrap`;
             });
             if (tab === 'matrix') renderWeeklyMatrix();
             if (tab === 'days') renderAdminDaysConfig();
@@ -547,9 +552,13 @@
         }
 
         function renderWeeklyMatrix() {
-            document.getElementById('adminMatrixTitle').innerText = `${currentYear}年 ${currentMonth + 1}月 全月排班矩陣總覽`;
-            document.getElementById('matrixMonthText').innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            const titleEl = document.getElementById('adminMatrixTitle');
+            const monthTextEl = document.getElementById('matrixMonthText');
+            if (titleEl) titleEl.innerText = `${currentYear}年 ${currentMonth + 1}月 全月排班矩陣總覽`;
+            if (monthTextEl) monthTextEl.innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            
             const grid = document.getElementById('adminMatrixCalendarGrid');
+            if (!grid) return;
             grid.innerHTML = '';
             let blankCount = (new Date(currentYear, currentMonth, 1).getDay() || 7) - 1;
             let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -661,6 +670,7 @@
 
         function renderVisualCalendarExport() {
             const grid = document.getElementById('visualExportGrid');
+            if (!grid) return;
             grid.innerHTML = '';
             let blankCount = (new Date(currentYear, currentMonth, 1).getDay() || 7) - 1;
             let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -668,7 +678,6 @@
             for (let i = 0; i < blankCount; i++) grid.appendChild(document.createElement('div'));
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateKey = getDateKey(currentYear, currentMonth, day);
-                const dow = new Date(currentYear, currentMonth, day).getDay();
                 const open = isDayOpen(dateKey);
                 const card = document.createElement('div');
                 card.className = `p-2 rounded-xl border min-h-[90px] ${!open ? 'bg-rose-50' : 'bg-white'}`;
@@ -706,8 +715,10 @@
 
         // --- DAYS CONFIG & TUTORS ---
         function renderAdminDaysConfig() {
-            document.getElementById('adminDaysMonthText').innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            const daysMonthTextEl = document.getElementById('adminDaysMonthText');
+            if (daysMonthTextEl) daysMonthTextEl.innerText = `${currentYear}年 ${currentMonth + 1}月`;
             const grid = document.getElementById('adminDaysToggleGrid');
+            if (!grid) return;
             grid.innerHTML = '';
             let blankCount = (new Date(currentYear, currentMonth, 1).getDay() || 7) - 1;
             let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
