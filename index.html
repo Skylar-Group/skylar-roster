@@ -22,7 +22,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
-                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (導師改密碼升級版)</p>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (防護登入修復版)</p>
                 </div>
             </div>
 
@@ -328,7 +328,7 @@
     <script>
         const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
 
-        // 正確校對後的 12 位導師與電話資料
+        // 絕對正確的預設 12 位導師與管理員名單
         const DEFAULT_USERS = {
             "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" },
             "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54" },
@@ -371,19 +371,22 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data) {
+                        // 雲端如果有有效的 users 資料，就採用雲端的；否則強制使用 DEFAULT_USERS
                         if (data.users && Object.keys(data.users).length > 1) {
                             users = data.users;
+                        } else {
+                            users = DEFAULT_USERS;
                         }
-                        if (data.submissions) {
-                            submissions = data.submissions;
-                        }
-                        if (data.daysConfig) {
-                            daysConfig = data.daysConfig;
-                        }
+                        if (data.submissions) submissions = data.submissions;
+                        if (data.daysConfig) daysConfig = data.daysConfig;
                     }
                     checkLoginState();
                 })
-                .catch(err => checkLoginState());
+                .catch(err => {
+                    // 若網路或雲端讀取失敗，強制使用預設帳號，確保隨時可登入
+                    users = DEFAULT_USERS;
+                    checkLoginState();
+                });
         }
 
         function forceSyncToCloud() {
