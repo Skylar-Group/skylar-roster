@@ -22,7 +22,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800 leading-tight">Skylar Learning Center</h1>
-                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (完整管理版)</p>
+                    <p class="text-xs text-slate-500">兼職導師報更及排班管理系統 (導師改密碼升級版)</p>
                 </div>
             </div>
 
@@ -80,8 +80,12 @@
                 <div>
                     <span class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-semibold mb-2">導師報更專區</span>
                     <h2 class="text-2xl font-bold">填報可上班日子與時段</h2>
+                    <p class="text-indigo-100 text-sm mt-1">提示：已核准之更次不可自行更改，如有特別事故請點擊「請假」。</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <button onclick="openChangeMyPasswordModal()" class="bg-white/25 hover:bg-white/35 text-white font-semibold px-4 py-2.5 rounded-xl transition flex items-center space-x-2 text-sm backdrop-blur">
+                        <i data-lucide="key" class="w-4 h-4"></i><span>修改密碼</span>
+                    </button>
                     <button onclick="saveTutorAvailability()" class="bg-white text-indigo-600 font-semibold px-5 py-2.5 rounded-xl shadow hover:bg-indigo-50 transition flex items-center space-x-2 text-sm">
                         <i data-lucide="save" class="w-4 h-4"></i><span>儲存報更</span>
                     </button>
@@ -96,6 +100,10 @@
                     <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
                     <span id="tutorMonthYearText" class="text-lg font-bold text-slate-800">2026年 10月</span>
                     <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                </div>
+                <div class="flex items-center space-x-4 text-xs font-medium">
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-indigo-600"></span><span class="text-slate-600">已選待審</span></div>
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span><span class="text-slate-600">已核准</span></div>
                 </div>
             </div>
 
@@ -114,6 +122,7 @@
                 <div>
                     <span class="inline-block px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-semibold mb-2 border border-amber-500/30">管理員控制台</span>
                     <h2 class="text-2xl font-bold">排班審批、時段與帳號管理</h2>
+                    <p class="text-slate-300 text-sm mt-1">審批完畢後，可以月曆型態將全月班次一鍵發送 WhatsApp 予導師。</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button onclick="forceSyncToCloud()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center space-x-1.5 shadow">
@@ -187,7 +196,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="adminDaysToggleGrid"></div>
             </div>
 
-            <!-- TAB 3: TUTORS (含編輯、修改密碼、停用/刪除功能) -->
+            <!-- TAB 3: TUTORS -->
             <div id="adminTabTutors" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
                 <div class="flex justify-between items-center border-b pb-4">
                     <h3 class="text-base font-bold text-slate-800">導師帳號及密碼管理</h3>
@@ -275,7 +284,7 @@
         </div>
     </div>
 
-    <!-- MODAL: ADD/EDIT TUTOR (含編輯與修改密碼) -->
+    <!-- MODAL: ADD/EDIT TUTOR (ADMIN) -->
     <div id="tutorModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <h3 id="tutorModalTitle" class="text-lg font-bold text-slate-800 border-b pb-3">新增導師帳號</h3>
@@ -289,6 +298,27 @@
                 <div class="flex justify-end space-x-3 pt-2">
                     <button type="button" onclick="closeTutorModal()" class="px-4 py-2 border rounded-lg text-sm">取消</button>
                     <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold">儲存帳號</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TUTOR CHANGE OWN PASSWORD -->
+    <div id="changeMyPasswordModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b pb-3">修改個人密碼</h3>
+            <form onsubmit="handleTutorChangePassword(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">新密碼</label>
+                    <input type="password" id="myNewPass" required placeholder="請輸入新密碼" class="w-full p-2.5 border rounded-lg text-sm font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">確認新密碼</label>
+                    <input type="password" id="myConfirmPass" required placeholder="請再次輸入新密碼" class="w-full p-2.5 border rounded-lg text-sm font-mono">
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeChangeMyPasswordModal()" class="px-4 py-2 border rounded-lg text-sm">取消</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold">確認修改</button>
                 </div>
             </form>
         </div>
@@ -516,6 +546,35 @@
             window.open(`https://api.whatsapp.com/send?phone=852${users['admin'].phone}&text=${encodeURIComponent('【Skylar 導師報更通知】已完成報更，請 Admin 審批。')}`, '_blank');
         }
 
+        // --- TUTOR CHANGE OWN PASSWORD ---
+        function openChangeMyPasswordModal() {
+            document.getElementById('myNewPass').value = '';
+            document.getElementById('myConfirmPass').value = '';
+            document.getElementById('changeMyPasswordModal').classList.remove('hidden');
+        }
+        function closeChangeMyPasswordModal() {
+            document.getElementById('changeMyPasswordModal').classList.add('hidden');
+        }
+        function handleTutorChangePassword(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('myNewPass').value.trim();
+            const confirmPass = document.getElementById('myConfirmPass').value.trim();
+
+            if (newPass !== confirmPass) {
+                alert('兩次輸入的密碼不相符，請重新輸入！');
+                return;
+            }
+            if (newPass.length < 4) {
+                alert('密碼長度請至少輸入 4 個字元！');
+                return;
+            }
+
+            users[currentUser].pass = newPass;
+            syncCloudData();
+            closeChangeMyPasswordModal();
+            alert('密碼修改成功！下次登入請使用新密碼。');
+        }
+
         // --- ADMIN TABS & MATRIX ---
         function switchAdminTab(tab) {
             ['matrix', 'days', 'tutors'].forEach(t => {
@@ -704,7 +763,7 @@
             setTimeout(() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent('【Skylar 官方更表】請查收更表圖片！')}`, '_blank'), 800);
         }
 
-        // --- DAYS CONFIG & TUTORS (含編輯、刪除/停用帳戶功能) ---
+        // --- DAYS CONFIG & TUTORS ---
         function renderAdminDaysConfig() {
             const daysMonthTextEl = document.getElementById('adminDaysMonthText');
             if (daysMonthTextEl) daysMonthTextEl.innerText = `${currentYear}年 ${currentMonth + 1}月`;
@@ -780,7 +839,7 @@
             document.getElementById('modalTutorName').value = t.name;
             document.getElementById('modalTutorSubjects').value = t.subjects || '-';
             document.getElementById('modalTutorUser').value = u;
-            document.getElementById('modalTutorUser').disabled = true; // 帳號不可更改
+            document.getElementById('modalTutorUser').disabled = true;
             document.getElementById('modalTutorPhone').value = t.phone || '';
             document.getElementById('modalTutorPass').value = t.pass || '';
             document.getElementById('tutorModal').classList.remove('hidden');
@@ -798,13 +857,11 @@
             const pass = document.getElementById('modalTutorPass').value.trim();
 
             if (editKey) {
-                // 修改現有導師
                 users[editKey].name = name;
                 users[editKey].subjects = subjects;
                 users[editKey].phone = phone;
                 users[editKey].pass = pass;
             } else {
-                // 新增導師
                 if (users[u]) { alert('此帳號已存在！'); return; }
                 users[u] = { name, subjects, role: 'tutor', pass, phone };
             }
