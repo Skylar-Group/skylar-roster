@@ -468,12 +468,40 @@
             return ['16:00-20:00'];
         }
 
+        // 智慧時段顯示：連續時段自動合併為區間，不連續則分開顯示
         function getFormattedSlotRange(slots) {
             if (!slots || slots.length === 0) return '無時段';
-            // 將時段排序或直接取頭尾
-            let startTimes = slots.map(s => s.split('-')[0]);
-            let endTimes = slots.map(s => s.split('-')[1]);
-            return `${startTimes[0]} - ${endTimes[endTimes.length - 1]}`;
+            
+            // 轉成分鐘計算以便判斷連續性
+            let parsed = slots.map(s => {
+                let parts = s.split('-');
+                let startParts = parts[0].split(':');
+                let endParts = parts[1].split(':');
+                return {
+                    str: s,
+                    startMin: parseInt(startParts[0]) * 60 + parseInt(startParts[1]),
+                    endMin: parseInt(endParts[0]) * 60 + parseInt(endParts[1])
+                };
+            }).sort((a, b) => a.startMin - b.startMin);
+
+            let groups = [];
+            let currentGroup = [parsed[0]];
+
+            for (let i = 1; i < parsed.length; i++) {
+                if (parsed[i].startMin === currentGroup[currentGroup.length - 1].endMin) {
+                    currentGroup.push(parsed[i]);
+                } else {
+                    groups.push(currentGroup);
+                    currentGroup = [parsed[i]];
+                }
+            }
+            groups.push(currentGroup);
+
+            return groups.map(g => {
+                let startStr = g[0].str.split('-')[0];
+                let endStr = g[g.length - 1].str.split('-')[1];
+                return `${startStr} - ${endStr}`;
+            }).join(', ');
         }
 
         function changeMonth(delta) {
