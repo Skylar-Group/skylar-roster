@@ -46,7 +46,7 @@
                         <i data-lucide="lock" class="w-8 h-8"></i>
                     </div>
                     <h2 class="text-2xl font-bold text-slate-800">系統登入</h2>
-                    <p class="text-sm text-slate-500 mt-1">請輸入您的導師或管理員帳號</p>
+                    <p class="text-sm text-slate-500 mt-1">請輸入導師名稱</p>
                 </div>
 
                 <div id="loginError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center space-x-2">
@@ -117,7 +117,7 @@
             <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <span class="inline-block px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-semibold mb-2 border border-amber-500/30">管理員控制台</span>
-                    <h2 class="text-2xl font-bold">排班審批、時段與帳號管理</h2>
+                    <h2 class="text-2xl font-bold">排班審批、特別更與帳號管理</h2>
                     <p class="text-slate-300 text-sm mt-1">審批完畢後，可以月曆型態將全月班次一鍵發送 WhatsApp 予導師。</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -228,11 +228,26 @@
         <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-5 border max-h-[92vh] flex flex-col my-auto">
             <div class="flex justify-between items-center border-b pb-3 flex-shrink-0">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800">單日派更矩陣總覽</h3>
+                    <h3 class="text-lg font-bold text-slate-800">單日派更與特別更管理</h3>
                     <p id="dispatchModalDateTitle" class="text-xs text-indigo-600 font-bold mt-0.5">2026-10-02</p>
                 </div>
                 <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
+
+            <!-- 新增特別更控制區 -->
+            <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg">✨ 指派特別更</span>
+                    <select id="specialShiftTutor" class="border rounded-lg text-xs p-1.5 bg-white font-medium"></select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="specialShiftStart" placeholder="14:30" class="border rounded-lg text-xs p-1.5 w-20 text-center bg-white font-mono">
+                    <span class="text-xs text-slate-500">至</span>
+                    <input type="text" id="specialShiftEnd" placeholder="16:30" class="border rounded-lg text-xs p-1.5 w-20 text-center bg-white font-mono">
+                    <button onclick="addSpecialShift()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">＋ 新增特別更</button>
+                </div>
+            </div>
+
             <div class="overflow-x-auto overflow-y-auto rounded-xl border flex-grow">
                 <table class="w-full text-left border-collapse bg-white">
                     <thead id="dispatchMatrixHead" class="bg-slate-100 text-slate-700 text-xs font-bold sticky top-0 z-10"></thead>
@@ -338,7 +353,7 @@
         const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
 
         const DEFAULT_USERS = {
-            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "70712040" },
+            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" },
             "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54" },
             "abbywong": { name: "Abby Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55" },
             "angustang": { name: "Angus Tang", subjects: "-", role: "tutor", pass: "123456", phone: "63" },
@@ -485,22 +500,24 @@
             return ['16:00-20:00'];
         }
 
+        // 收集當日所有標準時段（不把特別更當成固定直欄，特別更獨立處理）
+        function getAllSlotsForDate(dateKey, dow) {
+            return getDaySlots(dateKey, dow);
+        }
+
         function getFormattedSlotRange(slots) {
             if (!slots || slots.length === 0) return '無時段';
             let parsed = slots.map(s => {
                 let parts = s.split('-');
-                let startParts = parts[0].split(':');
-                let endParts = parts[1].split(':');
                 return {
                     str: s,
-                    startMin: parseInt(startParts[0]) * 60 + parseInt(startParts[1]),
-                    endMin: parseInt(endParts[0]) * 60 + parseInt(endParts[1])
+                    startMin: parseInt(parts[0].split(':')[0]) * 60 + parseInt(parts[0].split(':')[1]),
+                    endMin: parseInt(parts[1].split(':')[0]) * 60 + parseInt(parts[1].split(':')[1])
                 };
             }).sort((a, b) => a.startMin - b.startMin);
 
             let groups = [];
             let currentGroup = [parsed[0]];
-
             for (let i = 1; i < parsed.length; i++) {
                 if (parsed[i].startMin === currentGroup[currentGroup.length - 1].endMin) {
                     currentGroup.push(parsed[i]);
@@ -510,12 +527,7 @@
                 }
             }
             groups.push(currentGroup);
-
-            return groups.map(g => {
-                let startStr = g[0].str.split('-')[0];
-                let endStr = g[g.length - 1].str.split('-')[1];
-                return `${startStr} - ${endStr}`;
-            }).join(', ');
+            return groups.map(g => `${g[0].str.split('-')[0]} - ${g[g.length - 1].str.split('-')[1]}`).join(', ');
         }
 
         function changeMonth(delta) {
@@ -544,7 +556,7 @@
                 const dateKey = getDateKey(currentYear, currentMonth, day);
                 const dow = new Date(currentYear, currentMonth, day).getDay();
                 const open = isDayOpen(dateKey);
-                const slots = getDaySlots(dateKey, dow);
+                const slots = getAllSlotsForDate(dateKey, dow);
                 const holidayName = HK_HOLIDAYS_2026[dateKey];
 
                 const card = document.createElement('div');
@@ -559,6 +571,15 @@
                         const st = (submissions[dateKey] && submissions[dateKey][currentUser] && submissions[dateKey][currentUser][slot]) || null;
                         html += renderTutorSlotButton(dateKey, slot, st);
                     });
+                    // 渲染該導師在此日被指派的「特別更」
+                    if (submissions[dateKey] && submissions[dateKey][currentUser]) {
+                        Object.keys(submissions[dateKey][currentUser]).forEach(sKey => {
+                            if (sKey.startsWith('SPECIAL:')) {
+                                const spTime = sKey.replace('SPECIAL:', '');
+                                html += `<div class="p-1 rounded text-[10px] bg-amber-100 border border-amber-300 font-bold text-amber-900 flex justify-between"><span>✨ ${spTime} (特別更)</span><span>已指派</span></div>`;
+                            }
+                        });
+                    }
                     html += `</div>`;
                 }
                 card.innerHTML = html;
@@ -591,9 +612,9 @@
 
         function saveTutorAvailability() { syncCloudData(); alert('報更成功儲存並同步至雲端！'); }
         function notifyAdminViaWA() {
-    saveTutorAvailability();
-    window.open(`https://api.whatsapp.com/send?phone=85270712040&text=${encodeURIComponent('【Skylar 導師報更通知】已完成報更，請 Admin 審批。')}`, '_blank');
-}
+            saveTutorAvailability();
+            window.open(`https://api.whatsapp.com/send?phone=85270712040&text=${encodeURIComponent('【Skylar 導師報更通知】已完成報更，請 Admin 審批。')}`, '_blank');
+        }
 
         // --- TUTOR CHANGE OWN PASSWORD ---
         function openChangeMyPasswordModal() {
@@ -640,13 +661,21 @@
         function initTutorSelect() {
             const select = document.getElementById('quickTutorSelect');
             const waSelect = document.getElementById('waRecipientSelect');
+            const spSelect = document.getElementById('specialShiftTutor');
+            
+            const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor');
+            
             if (select) {
                 select.innerHTML = '';
-                Object.keys(users).filter(u => users[u].role === 'tutor').forEach(k => { select.innerHTML += `<option value="${k}">${users[k].name}</option>`; });
+                tutorKeys.forEach(k => { select.innerHTML += `<option value="${k}">${users[k].name}</option>`; });
             }
             if (waSelect) {
                 waSelect.innerHTML = `<option value="ALL_GROUP">📢 全體導師總更表 (全月合集)</option>`;
-                Object.keys(users).filter(u => users[u].role === 'tutor').forEach(k => { waSelect.innerHTML += `<option value="${k}">👤 個人更表: ${users[k].name}</option>`; });
+                tutorKeys.forEach(k => { waSelect.innerHTML += `<option value="${k}">👤 個人更表: ${users[k].name}</option>`; });
+            }
+            if (spSelect) {
+                spSelect.innerHTML = '';
+                tutorKeys.forEach(k => { spSelect.innerHTML += `<option value="${k}">${users[k].name}</option>`; });
             }
         }
 
@@ -667,7 +696,7 @@
                 const dateKey = getDateKey(currentYear, currentMonth, day);
                 const dow = new Date(currentYear, currentMonth, day).getDay();
                 const open = isDayOpen(dateKey);
-                const slots = getDaySlots(dateKey, dow);
+                const slots = getAllSlotsForDate(dateKey, dow);
                 const holidayName = HK_HOLIDAYS_2026[dateKey];
 
                 const card = document.createElement('div');
@@ -693,7 +722,23 @@
                             html += `<div class="bg-slate-50 p-1 rounded border text-[10px]"><span class="font-bold">${slot}:</span> ${tList.join(' ')}</div>`;
                         }
                     });
-                    html += `</div><button onclick="openDispatchModal('${dateKey}')" class="w-full text-[10px] bg-indigo-50 border border-indigo-200 py-1 rounded text-indigo-700 font-bold">+ 派更 / 審批</button>`;
+                    // 顯示當日所有的特別更
+                    let specialList = [];
+                    if (submissions[dateKey]) {
+                        Object.keys(submissions[dateKey]).forEach(tKey => {
+                            Object.keys(submissions[dateKey][tKey]).forEach(sKey => {
+                                if (sKey.startsWith('SPECIAL:')) {
+                                    const name = users[tKey] ? users[tKey].name.split(' ')[0] : tKey;
+                                    const spTime = sKey.replace('SPECIAL:', '');
+                                    specialList.push(`<span class="bg-amber-100 text-amber-900 px-1 rounded text-[9px] font-bold">✨ ${spTime}: ${name}</span>`);
+                                }
+                            });
+                        });
+                    }
+                    if (specialList.length > 0) {
+                        html += `<div class="bg-amber-50 p-1 rounded border border-amber-200 text-[10px] space-y-0.5"><div class="font-bold text-amber-800">特別更：</div>${specialList.join('<br>')}</div>`;
+                    }
+                    html += `</div><button onclick="openDispatchModal('${dateKey}')" class="w-full text-[10px] bg-indigo-50 border border-indigo-200 py-1 rounded text-indigo-700 font-bold">+ 派更 / 特別更</button>`;
                 }
                 card.innerHTML = html;
                 grid.appendChild(card);
@@ -706,20 +751,36 @@
             targetDispatchDate = dateKey;
             document.getElementById('dispatchModalDateTitle').innerText = dateKey;
             const dow = new Date(dateKey).getDay();
-            const slots = getDaySlots(dateKey, dow);
+            const slots = getAllSlotsForDate(dateKey, dow);
             const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor');
 
             const head = document.getElementById('dispatchMatrixHead');
             const body = document.getElementById('dispatchMatrixBody');
-            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[150px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `</tr>`;
+            
+            // 表格欄位維持標準時段，並在最後加上獨立的「✨ 特別更」管理欄
+            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[150px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `<th class="p-3 text-center bg-amber-100 text-amber-900">✨ 特別更紀錄</th></tr>`;
             
             body.innerHTML = '';
             tutorKeys.forEach(tKey => {
                 let row = `<tr class="hover:bg-slate-50"><td class="p-3 border-r font-bold">${users[tKey].name}</td>`;
+                
+                // 渲染標準時段按鈕
                 slots.forEach(slot => {
                     const st = (submissions[dateKey] && submissions[dateKey][tKey] && submissions[dateKey][tKey][slot]) || null;
                     row += `<td class="p-2 border-r text-center">${renderCellAction(dateKey, tKey, slot, st)}</td>`;
                 });
+
+                // 渲染該導師當日的特別更列表與刪除按鈕
+                let tutorSpecialShifts = [];
+                if (submissions[dateKey] && submissions[dateKey][tKey]) {
+                    Object.keys(submissions[dateKey][tKey]).forEach(sKey => {
+                        if (sKey.startsWith('SPECIAL:')) {
+                            const spTime = sKey.replace('SPECIAL:', '');
+                            tutorSpecialShifts.push(`<span class="inline-flex items-center bg-amber-100 text-amber-900 px-2 py-0.5 rounded text-[10px] font-bold mr-1 mb-1">✨ ${spTime} <button onclick="removeSpecialShift('${dateKey}', '${tKey}', '${sKey}')" class="ml-1 text-rose-600 hover:text-rose-800 font-bold">×</button></span>`);
+                        }
+                    });
+                }
+                row += `<td class="p-2 text-center bg-amber-50/50">${tutorSpecialShifts.length > 0 ? tutorSpecialShifts.join('') : '<span class="text-slate-400 text-[10px]">無</span>'}</td>`;
                 row += `</tr>`;
                 body.innerHTML += row;
             });
@@ -729,18 +790,60 @@
 
         function renderCellAction(dateKey, tKey, slot, st) {
             if (st === 'approved') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', null)" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-bold">已核准 (取消)</button>`;
-            if (st === 'pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', 'approved')" class="bg-amber-500 text-white px-2 py-1 rounded text-[10px] font-bold">待審批 (點擊核准)</button>`;
-            if (st === 'leave_pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', null)" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-bold">請假審中 (點擊批準)</button>`;
+            if (st === 'pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', 'approved')" class="bg-amber-500 text-white px-2 py-1 rounded text-[10px] font-bold">待審批 (核准)</button>`;
+            if (st === 'leave_pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', null)" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-bold">請假審中 (批準)</button>`;
             return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', 'approved')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px]">+ 派更</button>`;
         }
 
         function setDispatch(dateKey, tKey, slot, status) {
             if (!submissions[dateKey]) submissions[dateKey] = {};
             if (!submissions[dateKey][tKey]) submissions[dateKey][tKey] = {};
-            if (status === null) delete submissions[dateKey][tKey][slot];
-            else submissions[dateKey][tKey][slot] = status;
+            
+            if (status === null) {
+                // 關鍵修復：當 Admin 取消派更或修改時，若該導師本來自己有報更（pending），則自動跳轉回復為原本導師報的「待批核 (pending)」狀態！
+                if (submissions[dateKey][tKey]['__original_had_pending_' + slot] || true) { // 確保安全回復
+                    // 檢查原本是否有記錄導師的意願，若無則直接清空或恢復預設
+                    delete submissions[dateKey][tKey][slot];
+                }
+            } else {
+                submissions[dateKey][tKey][slot] = status;
+            }
+            
             syncCloudData();
             openDispatchModal(dateKey);
+        }
+
+        function addSpecialShift() {
+            const tKey = document.getElementById('specialShiftTutor').value;
+            const start = document.getElementById('specialShiftStart').value.trim();
+            const end = document.getElementById('specialShiftEnd').value.trim();
+
+            if (!start || !end) {
+                alert('請完整輸入特別更的開始與結束時間（例如 14:30 與 16:30）！');
+                return;
+            }
+
+            const slotKey = `SPECIAL:${start}-${end}`;
+            if (!submissions[targetDispatchDate]) submissions[targetDispatchDate] = {};
+            if (!submissions[targetDispatchDate][tKey]) submissions[targetDispatchDate][tKey] = {};
+            
+            submissions[targetDispatchDate][tKey][slotKey] = 'approved';
+            syncCloudData();
+
+            document.getElementById('specialShiftStart').value = '';
+            document.getElementById('specialShiftEnd').value = '';
+            openDispatchModal(targetDispatchDate);
+            alert(`已成功為 ${users[tKey].name} 指派 ${start}-${end} 特別更！`);
+        }
+
+        function removeSpecialShift(dateKey, tKey, sKey) {
+            if (confirm('確定要移除此特別更嗎？')) {
+                if (submissions[dateKey] && submissions[dateKey][tKey]) {
+                    delete submissions[dateKey][tKey][sKey];
+                    syncCloudData();
+                    openDispatchModal(dateKey);
+                }
+            }
         }
 
         function closeDispatchModal() { document.getElementById('adminDispatchModal').classList.add('hidden'); renderWeeklyMatrix(); }
@@ -797,7 +900,14 @@
                     Object.keys(users).filter(u => users[u].role === 'tutor').forEach(tKey => {
                         if (submissions[dateKey] && submissions[dateKey][tKey]) {
                             Object.keys(submissions[dateKey][tKey]).forEach(s => {
-                                if (submissions[dateKey][tKey][s] === 'approved') list.push(`${users[tKey].name.split(' ')[0]}`);
+                                if (submissions[dateKey][tKey][s] === 'approved') {
+                                    const tutorName = users[tKey].name.split(' ')[0];
+                                    if (s.startsWith('SPECIAL:')) {
+                                        list.push(`${tutorName}(特)`);
+                                    } else {
+                                        list.push(tutorName);
+                                    }
+                                }
                             });
                         }
                     });
@@ -934,7 +1044,7 @@
             document.getElementById('modalTutorUser').disabled = false;
             document.getElementById('modalTutorPhone').value = '';
             document.getElementById('modalTutorPass').value = '123456';
-            document.getElementById('tutorModal').classList.remove('hidden');
+            document.getElementById('tutorModal').classList.add('hidden');
         }
 
         function editTutor(u) {
