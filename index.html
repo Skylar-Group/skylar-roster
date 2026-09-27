@@ -98,7 +98,7 @@
                     <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
                 </div>
                 <div class="flex items-center space-x-4 text-xs font-medium">
-                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-indigo-600"></span><span class="text-slate-600">已選待審</span></div>
+                    <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-amber-500"></span><span class="text-slate-600">已選待審</span></div>
                     <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span><span class="text-slate-600">已核准</span></div>
                 </div>
             </div>
@@ -282,17 +282,18 @@
                 </div>
             </div>
 
-            <!-- 新增特別更控制區 -->
-            <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
+            <!-- 新增特別更控制區 (含備註輸入) -->
+            <div class="bg-purple-50 border border-purple-200 p-3 rounded-xl flex flex-col lg:flex-row items-center justify-between gap-3 flex-shrink-0">
                 <div class="flex items-center space-x-2">
-                    <span class="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg">✨ 指派特別更</span>
+                    <span class="bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">✨ 指派特別更</span>
                     <select id="specialShiftTutor" class="border rounded-lg text-xs p-1.5 bg-white font-medium"></select>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <input type="text" id="specialShiftStart" placeholder="14:30" class="border rounded-lg text-xs p-1.5 w-20 text-center bg-white font-mono">
+                <div class="flex flex-wrap items-center gap-2">
+                    <input type="text" id="specialShiftStart" placeholder="14:30" class="border rounded-lg text-xs p-1.5 w-16 text-center bg-white font-mono">
                     <span class="text-xs text-slate-500">至</span>
-                    <input type="text" id="specialShiftEnd" placeholder="16:30" class="border rounded-lg text-xs p-1.5 w-20 text-center bg-white font-mono">
-                    <button onclick="addSpecialShift()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">＋ 新增特別更</button>
+                    <input type="text" id="specialShiftEnd" placeholder="16:30" class="border rounded-lg text-xs p-1.5 w-16 text-center bg-white font-mono">
+                    <input type="text" id="specialShiftNote" placeholder="備註 (例如：WYN P6 PW)" class="border rounded-lg text-xs p-1.5 w-44 bg-white">
+                    <button onclick="addSpecialShift()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">＋ 新增特別更</button>
                 </div>
             </div>
 
@@ -367,14 +368,13 @@
                 <div><label class="block text-xs font-semibold mb-1">登入帳號 (Username)</label><input type="text" id="modalTutorUser" required class="w-full p-2.5 border rounded-lg text-sm"></div>
                 <div><label class="block text-xs font-semibold mb-1">WhatsApp 電話號碼</label><input type="text" id="modalTutorPhone" required class="w-full p-2.5 border rounded-lg text-sm"></div>
                 
-                <!-- 新增薪金結構設定 -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold mb-1 text-indigo-700">標準時薪 (HKD)</label>
                         <input type="number" id="modalTutorHourlyRate" required placeholder="65" class="w-full p-2.5 border rounded-lg text-sm font-mono">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold mb-1 text-amber-700">特別更薪金 (HKD)</label>
+                        <label class="block text-xs font-semibold mb-1 text-purple-700">特別更薪金 (HKD)</label>
                         <input type="number" id="modalTutorSpecialRate" required placeholder="100" class="w-full p-2.5 border rounded-lg text-sm font-mono">
                     </div>
                 </div>
@@ -567,15 +567,24 @@
 
         function parseSlotHours(slotStr) {
             if (slotStr.startsWith('SPECIAL:')) {
-                slotStr = slotStr.replace('SPECIAL:', '');
+                slotStr = slotStr.replace('SPECIAL:', '').split('|')[0];
             }
             let parts = slotStr.split('-');
-            if (parts.length !== 2) return 1; // 預設 1 小時
+            if (parts.length !== 2) return 1;
             let start = parts[0].split(':');
             let end = parts[1].split(':');
             let startMin = parseInt(start[0]) * 60 + parseInt(start[1]);
             let endMin = parseInt(end[0]) * 60 + parseInt(end[1]);
             return (endMin - startMin) / 60;
+        }
+
+        function parseSpecialShiftKey(sKey) {
+            const raw = sKey.replace('SPECIAL:', '');
+            const parts = raw.split('|');
+            return {
+                time: parts[0],
+                note: parts[1] || ''
+            };
         }
 
         function getFormattedSlotRange(slots) {
@@ -648,8 +657,10 @@
                     if (submissions[dateKey] && submissions[dateKey][currentUser]) {
                         Object.keys(submissions[dateKey][currentUser]).forEach(sKey => {
                             if (sKey.startsWith('SPECIAL:')) {
-                                const spTime = sKey.replace('SPECIAL:', '');
-                                html += `<div class="p-1 rounded text-[10px] bg-amber-100 border border-amber-300 font-bold text-amber-900 flex justify-between"><span>✨ ${spTime} (特別更)</span><span>已指派</span></div>`;
+                                const sp = parseSpecialShiftKey(sKey);
+                                const headerText = sp.note ? `特別更：${sp.note}` : '特別更：';
+                                const tutorFirstName = users[currentUser].name.split(' ')[0];
+                                html += `<div class="p-1.5 rounded-lg text-[10px] bg-purple-50 border border-purple-200 text-purple-900 font-bold"><div class="text-purple-700 mb-0.5">${headerText}</div><div>✨ ${tutorFirstName} ${sp.time}</div></div>`;
                             }
                         });
                     }
@@ -664,14 +675,18 @@
         function renderTutorSlotButton(dateKey, slot, st) {
             if (st === 'approved') return `<div class="p-1 rounded text-[10px] bg-emerald-50 border border-emerald-300 flex justify-between"><span class="font-bold text-emerald-800">${slot} ✓</span><button onclick="requestLeave('${dateKey}', '${slot}')" class="bg-rose-100 text-rose-700 px-1 rounded text-[9px]">請假</button></div>`;
             if (st === 'leave_pending') return `<div class="p-1 rounded text-[10px] bg-amber-50 border border-amber-300 flex justify-between font-bold"><span>${slot}</span><span class="text-[9px]">請假審批中</span></div>`;
-            return `<button onclick="toggleTutorSlotDirect('${dateKey}', '${slot}')" class="w-full text-left px-1.5 py-1 rounded text-[10px] border flex justify-between ${st === 'pending' ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-50 text-slate-600'}"><span>${slot}</span><span>${st === 'pending' ? '已報' : '+'}</span></button>`;
+            return `<button onclick="toggleTutorSlotDirect('${dateKey}', '${slot}')" class="w-full text-left px-1.5 py-1 rounded text-[10px] border flex justify-between ${st === 'pending' ? 'bg-amber-500 text-white font-bold' : 'bg-slate-50 text-slate-600'}"><span>${slot}</span><span>${st === 'pending' ? '待審批' : '+'}</span></button>`;
         }
 
         function toggleTutorSlotDirect(dateKey, slot) {
             if (!submissions[dateKey]) submissions[dateKey] = {};
             if (!submissions[dateKey][currentUser]) submissions[dateKey][currentUser] = {};
-            if (!submissions[dateKey][currentUser][slot]) submissions[dateKey][currentUser][slot] = 'pending';
-            else delete submissions[dateKey][currentUser][slot];
+
+            if (!submissions[dateKey][currentUser][slot]) {
+                submissions[dateKey][currentUser][slot] = 'pending';
+            } else {
+                delete submissions[dateKey][currentUser][slot];
+            }
             renderTutorCalendar();
         }
 
@@ -787,7 +802,7 @@
                                 if (st) {
                                     const name = users[tKey] ? users[tKey].name.split(' ')[0] : tKey;
                                     if (st === 'approved') tList.push(`<span class="bg-emerald-100 text-emerald-800 px-1 rounded text-[9px] font-bold">${name}✓</span>`);
-                                    else if (st === 'pending') tList.push(`<span class="bg-amber-100 text-amber-800 px-1 rounded text-[9px]">${name}(待)</span>`);
+                                    else if (st === 'pending') tList.push(`<span class="bg-amber-100 text-amber-800 px-1 rounded text-[9px] font-bold">${name}(待)</span>`);
                                     else if (st === 'leave_pending') tList.push(`<span class="bg-rose-100 text-rose-800 px-1 rounded text-[9px] font-bold">${name}(請假審)</span>`);
                                 }
                             });
@@ -796,20 +811,22 @@
                             html += `<div class="bg-slate-50 p-1 rounded border text-[10px]"><span class="font-bold">${slot}:</span> ${tList.join(' ')}</div>`;
                         }
                     });
+                    
                     let specialList = [];
                     if (submissions[dateKey]) {
                         Object.keys(submissions[dateKey]).forEach(tKey => {
                             Object.keys(submissions[dateKey][tKey]).forEach(sKey => {
                                 if (sKey.startsWith('SPECIAL:')) {
                                     const name = users[tKey] ? users[tKey].name.split(' ')[0] : tKey;
-                                    const spTime = sKey.replace('SPECIAL:', '');
-                                    specialList.push(`<span class="bg-amber-100 text-amber-900 px-1 rounded text-[9px] font-bold">✨ ${spTime}: ${name}</span>`);
+                                    const sp = parseSpecialShiftKey(sKey);
+                                    const headerText = sp.note ? `特別更：${sp.note}` : '特別更：';
+                                    specialList.push(`<div class="bg-purple-50 p-1.5 rounded-lg border border-purple-200 text-[10px] font-bold text-purple-900"><div class="text-purple-700">${headerText}</div><div>${name} ${sp.time}</div></div>`);
                                 }
                             });
                         });
                     }
                     if (specialList.length > 0) {
-                        html += `<div class="bg-amber-50 p-1 rounded border border-amber-200 text-[10px] space-y-0.5"><div class="font-bold text-amber-800">特別更：</div>${specialList.join('<br>')}</div>`;
+                        html += `<div class="space-y-1">${specialList.join('')}</div>`;
                     }
                     html += `</div><button onclick="openDispatchModal('${dateKey}')" class="w-full text-[10px] bg-indigo-50 border border-indigo-200 py-1 rounded text-indigo-700 font-bold">+ 派更 / 特別更</button>`;
                 }
@@ -836,7 +853,6 @@
                 let totalHours = 0;
                 let specialCount = 0;
 
-                // 遍歷當月所有天的報更
                 let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateKey = getDateKey(currentYear, currentMonth, day);
@@ -862,9 +878,9 @@
                     <tr class="hover:bg-slate-50">
                         <td class="p-3 font-bold text-slate-800">${u.name}</td>
                         <td class="p-3 font-mono text-indigo-700 font-semibold">HK$ ${hRate}/小時</td>
-                        <td class="p-3 font-mono text-amber-700 font-semibold">HK$ ${spRate}/次</td>
+                        <td class="p-3 font-mono text-purple-700 font-semibold">HK$ ${spRate}/次</td>
                         <td class="p-3 text-center font-mono font-bold">${totalHours} 小時</td>
-                        <td class="p-3 text-center font-mono font-bold text-amber-800">${specialCount} 次</td>
+                        <td class="p-3 text-center font-mono font-bold text-purple-800">${specialCount} 次</td>
                         <td class="p-3 text-right font-mono font-black text-emerald-700 text-sm">HK$ ${tutorTotalSalary.toLocaleString()}</td>
                     </tr>
                 `;
@@ -884,7 +900,7 @@
             const head = document.getElementById('dispatchMatrixHead');
             const body = document.getElementById('dispatchMatrixBody');
             
-            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[140px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `<th class="p-3 text-center bg-amber-100 text-amber-900">✨ 特別更紀錄</th><th class="p-3 text-right bg-emerald-50 text-emerald-800 w-[120px]">當日預計薪金</th></tr>`;
+            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[140px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `<th class="p-3 text-center bg-purple-100 text-purple-900">✨ 特別更紀錄</th><th class="p-3 text-right bg-emerald-50 text-emerald-800 w-[120px]">當日預計薪金</th></tr>`;
             
             body.innerHTML = '';
             let dailyGrandTotal = 0;
@@ -909,12 +925,13 @@
                     Object.keys(submissions[dateKey][tKey]).forEach(sKey => {
                         if (sKey.startsWith('SPECIAL:')) {
                             tutorDailySpecialCount++;
-                            const spTime = sKey.replace('SPECIAL:', '');
-                            tutorSpecialShifts.push(`<span class="inline-flex items-center bg-amber-100 text-amber-900 px-2 py-0.5 rounded text-[10px] font-bold mr-1 mb-1">✨ ${spTime} <button onclick="removeSpecialShift('${dateKey}', '${tKey}', '${sKey}')" class="ml-1 text-rose-600 hover:text-rose-800 font-bold">×</button></span>`);
+                            const sp = parseSpecialShiftKey(sKey);
+                            const noteText = sp.note ? ` (${sp.note})` : '';
+                            tutorSpecialShifts.push(`<span class="inline-flex items-center bg-purple-100 text-purple-900 px-2 py-0.5 rounded text-[10px] font-bold mr-1 mb-1 border border-purple-200">✨ ${sp.time}${noteText} <button onclick="removeSpecialShift('${dateKey}', '${tKey}', '${sKey}')" class="ml-1 text-rose-600 hover:text-rose-800 font-bold">×</button></span>`);
                         }
                     });
                 }
-                row += `<td class="p-2 text-center bg-amber-50/50 border-r">${tutorSpecialShifts.length > 0 ? tutorSpecialShifts.join('') : '<span class="text-slate-400 text-[10px]">無</span>'}</td>`;
+                row += `<td class="p-2 text-center bg-purple-50/50 border-r">${tutorSpecialShifts.length > 0 ? tutorSpecialShifts.join('') : '<span class="text-slate-400 text-[10px]">無</span>'}</td>`;
 
                 const tutorDailySalary = (tutorDailyHours * hRate) + (tutorDailySpecialCount * spRate);
                 dailyGrandTotal += tutorDailySalary;
@@ -930,37 +947,85 @@
         }
 
         function renderCellAction(dateKey, tKey, slot, st) {
-            if (st === 'approved') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', null)" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-bold">已核准 (取消)</button>`;
-            if (st === 'pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', 'approved')" class="bg-amber-500 text-white px-2 py-1 rounded text-[10px] font-bold">待審批 (核准)</button>`;
-            if (st === 'leave_pending') return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', null)" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-bold">請假審中 (批準)</button>`;
-            return `<button onclick="setDispatch('${dateKey}', '${tKey}', '${slot}', 'approved')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px]">+ 派更</button>`;
+            if (st === 'approved') {
+                return `
+                    <div class="flex flex-col gap-1 items-center">
+                        <button onclick="unapproveDispatch('${dateKey}', '${tKey}', '${slot}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-[10px] font-bold w-full shadow">
+                            已核准 (取消派更)
+                        </button>
+                        <button onclick="adminCancelTutorSubmission('${dateKey}', '${tKey}', '${slot}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-1.5 py-0.5 rounded text-[9px] w-full font-semibold">
+                            代導師取消報更
+                        </button>
+                    </div>
+                `;
+            }
+            if (st === 'pending') {
+                return `
+                    <div class="flex flex-col gap-1 items-center">
+                        <button onclick="approveDispatch('${dateKey}', '${tKey}', '${slot}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-[10px] font-bold w-full shadow">
+                            待審批 (核准派更)
+                        </button>
+                        <button onclick="adminCancelTutorSubmission('${dateKey}', '${tKey}', '${slot}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-1.5 py-0.5 rounded text-[9px] w-full font-semibold">
+                            代導師取消報更
+                        </button>
+                    </div>
+                `;
+            }
+            if (st === 'leave_pending') {
+                return `
+                    <div class="flex flex-col gap-1 items-center">
+                        <button onclick="approveDispatch('${dateKey}', '${tKey}', '${slot}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-[10px] font-bold w-full shadow">
+                            請假審中 (批准)
+                        </button>
+                        <button onclick="adminCancelTutorSubmission('${dateKey}', '${tKey}', '${slot}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-1.5 py-0.5 rounded text-[9px] w-full font-semibold">
+                            代導師取消報更
+                        </button>
+                    </div>
+                `;
+            }
+            return `<button onclick="approveDispatch('${dateKey}', '${tKey}', '${slot}')" class="bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 px-2 py-1 rounded text-[10px] w-full">+ 派更</button>`;
         }
 
-        function setDispatch(dateKey, tKey, slot, status) {
+        function approveDispatch(dateKey, tKey, slot) {
             if (!submissions[dateKey]) submissions[dateKey] = {};
             if (!submissions[dateKey][tKey]) submissions[dateKey][tKey] = {};
-            
-            if (status === null) {
-                delete submissions[dateKey][tKey][slot];
-            } else {
-                submissions[dateKey][tKey][slot] = status;
-            }
+            submissions[dateKey][tKey][slot] = 'approved';
             
             syncCloudData();
             openDispatchModal(dateKey);
+        }
+
+        function unapproveDispatch(dateKey, tKey, slot) {
+            if (!submissions[dateKey]) submissions[dateKey] = {};
+            if (!submissions[dateKey][tKey]) submissions[dateKey][tKey] = {};
+            submissions[dateKey][tKey][slot] = 'pending';
+            
+            syncCloudData();
+            openDispatchModal(dateKey);
+        }
+
+        function adminCancelTutorSubmission(dateKey, tKey, slot) {
+            if (confirm(`確定代導師 ${users[tKey] ? users[tKey].name : tKey} 取消 ${dateKey} ${slot} 的報更紀錄？`)) {
+                if (submissions[dateKey] && submissions[dateKey][tKey]) {
+                    delete submissions[dateKey][tKey][slot];
+                    syncCloudData();
+                    openDispatchModal(dateKey);
+                }
+            }
         }
 
         function addSpecialShift() {
             const tKey = document.getElementById('specialShiftTutor').value;
             const start = document.getElementById('specialShiftStart').value.trim();
             const end = document.getElementById('specialShiftEnd').value.trim();
+            const note = document.getElementById('specialShiftNote').value.trim();
 
             if (!start || !end) {
                 alert('請完整輸入特別更的開始與結束時間（例如 14:30 與 16:30）！');
                 return;
             }
 
-            const slotKey = `SPECIAL:${start}-${end}`;
+            const slotKey = note ? `SPECIAL:${start}-${end}|${note}` : `SPECIAL:${start}-${end}`;
             if (!submissions[targetDispatchDate]) submissions[targetDispatchDate] = {};
             if (!submissions[targetDispatchDate][tKey]) submissions[targetDispatchDate][tKey] = {};
             
@@ -969,6 +1034,7 @@
 
             document.getElementById('specialShiftStart').value = '';
             document.getElementById('specialShiftEnd').value = '';
+            document.getElementById('specialShiftNote').value = '';
             openDispatchModal(targetDispatchDate);
             alert(`已成功為 ${users[tKey].name} 指派 ${start}-${end} 特別更！`);
         }
@@ -1040,7 +1106,9 @@
                                 if (submissions[dateKey][tKey][s] === 'approved') {
                                     const tutorName = users[tKey].name.split(' ')[0];
                                     if (s.startsWith('SPECIAL:')) {
-                                        list.push(`${tutorName}(特)`);
+                                        const sp = parseSpecialShiftKey(s);
+                                        const noteStr = sp.note ? `(${sp.note})` : '(特)';
+                                        list.push(`${tutorName}${noteStr}`);
                                     } else {
                                         list.push(tutorName);
                                     }
@@ -1163,7 +1231,7 @@
                         <td class="p-3">${t.subjects || '-'}</td>
                         <td class="p-3 font-mono">${t.phone || '-'}</td>
                         <td class="p-3 font-mono font-bold text-indigo-700">HK$ ${t.hourlyRate || 65}</td>
-                        <td class="p-3 font-mono font-bold text-amber-700">HK$ ${t.specialRate || 100}</td>
+                        <td class="p-3 font-mono font-bold text-purple-700">HK$ ${t.specialRate || 100}</td>
                         <td class="p-3 font-mono text-slate-400">${t.pass}</td>
                         <td class="p-3 text-right space-x-2">
                             <button onclick="editTutor('${u}')" class="text-indigo-600 hover:text-indigo-800 font-medium text-xs">編輯/設薪金</button>
