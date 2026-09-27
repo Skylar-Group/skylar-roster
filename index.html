@@ -117,8 +117,8 @@
             <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <span class="inline-block px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-semibold mb-2 border border-amber-500/30">管理員控制台</span>
-                    <h2 class="text-2xl font-bold">排班審批、特別更與帳號管理</h2>
-                    <p class="text-slate-300 text-sm mt-1">審批完畢後，可以月曆型態將全月班次一鍵發送 WhatsApp 予導師。</p>
+                    <h2 class="text-2xl font-bold">排班審批、薪金試算與帳號管理</h2>
+                    <p class="text-slate-300 text-sm mt-1">審批完畢後，系統自動計算導師薪金預算並可將更表匯出至 WhatsApp。</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button onclick="forceSyncToCloud()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center space-x-1.5 shadow">
@@ -138,11 +138,14 @@
                 <button id="tabBtnMatrix" onclick="switchAdminTab('matrix')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2 whitespace-nowrap">
                     <i data-lucide="layout-grid" class="w-4 h-4"></i><span>全月排班矩陣 (月曆視角)</span>
                 </button>
+                <button id="tabBtnSalary" onclick="switchAdminTab('salary')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
+                    <i data-lucide="circle-dollar-sign" class="w-4 h-4"></i><span>全月薪金總預算</span>
+                </button>
                 <button id="tabBtnDays" onclick="switchAdminTab('days')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
                     <i data-lucide="calendar-off" class="w-4 h-4"></i><span>開放/休館與時段管理</span>
                 </button>
                 <button id="tabBtnTutors" onclick="switchAdminTab('tutors')" class="px-5 py-2.5 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
-                    <i data-lucide="user-cog" class="w-4 h-4"></i><span>導師帳號管理</span>
+                    <i data-lucide="user-cog" class="w-4 h-4"></i><span>導師帳號與薪金管理</span>
                 </button>
             </div>
 
@@ -179,7 +182,40 @@
                 </div>
             </div>
 
-            <!-- TAB 2: DAYS -->
+            <!-- TAB 2: SALARY BUDGET TAB -->
+            <div id="adminTabSalary" class="hidden bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800">全月導師薪金預算彙整表</h3>
+                        <p id="salaryMonthSubtitle" class="text-xs text-slate-500 mt-1">2026年 10月份 薪金總覽</p>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200 px-6 py-3 rounded-2xl flex items-center space-x-4">
+                        <div class="bg-emerald-600 text-white p-2.5 rounded-xl shadow"><i data-lucide="coins" class="w-6 h-6"></i></div>
+                        <div>
+                            <p class="text-xs font-semibold text-emerald-700 uppercase">全月預計薪金總支出</p>
+                            <p id="totalMonthlySalaryBudget" class="text-2xl font-black text-emerald-800 font-mono">HK$ 0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="bg-slate-100 text-slate-700 font-bold border-b text-xs uppercase">
+                            <tr>
+                                <th class="p-3">導師姓名</th>
+                                <th class="p-3">標準時薪</th>
+                                <th class="p-3">特別更固定薪金</th>
+                                <th class="p-3 text-center">總工作時數</th>
+                                <th class="p-3 text-center">特別更次數</th>
+                                <th class="p-3 text-right">預計總薪金 (HKD)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlySalaryTableBody" class="divide-y text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 3: DAYS -->
             <div id="adminTabDays" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
                 <div class="flex items-center justify-between border-b pb-4">
                     <h3 class="text-base font-bold text-slate-800">開放/關閉日子與彈性時段管理</h3>
@@ -202,18 +238,24 @@
                 <div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="adminDaysToggleGrid"></div>
             </div>
 
-            <!-- TAB 3: TUTORS -->
+            <!-- TAB 4: TUTORS -->
             <div id="adminTabTutors" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
                 <div class="flex justify-between items-center border-b pb-4">
-                    <h3 class="text-base font-bold text-slate-800">導師帳號及密碼管理</h3>
+                    <h3 class="text-base font-bold text-slate-800">導師帳號及薪金結構管理</h3>
                     <button onclick="openAddTutorModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg text-sm shadow">新增導師帳號</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left text-slate-600">
                         <thead class="bg-slate-50 text-slate-700 font-semibold border-b">
                             <tr>
-                                <th class="p-3">導師姓名</th><th class="p-3">登入帳號</th><th class="p-3">專科 / 科目</th>
-                                <th class="p-3">WhatsApp 電話</th><th class="p-3">密碼</th><th class="p-3 text-right">操作</th>
+                                <th class="p-3">導師姓名</th>
+                                <th class="p-3">登入帳號</th>
+                                <th class="p-3">專科 / 科目</th>
+                                <th class="p-3">WhatsApp 電話</th>
+                                <th class="p-3">標準時薪 (HKD)</th>
+                                <th class="p-3">特別更薪金 (HKD)</th>
+                                <th class="p-3">密碼</th>
+                                <th class="p-3 text-right">操作</th>
                             </tr>
                         </thead>
                         <tbody id="tutorManagementTable" class="divide-y"></tbody>
@@ -225,13 +267,19 @@
 
     <!-- MODAL: ADMIN DISPATCH MATRIX -->
     <div id="adminDispatchModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-8 pb-12 overflow-y-auto">
-        <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-5 border max-h-[92vh] flex flex-col my-auto">
+        <div class="bg-white rounded-2xl max-w-5xl w-full p-6 shadow-2xl space-y-5 border max-h-[92vh] flex flex-col my-auto">
             <div class="flex justify-between items-center border-b pb-3 flex-shrink-0">
                 <div>
                     <h3 class="text-lg font-bold text-slate-800">單日派更與特別更管理</h3>
                     <p id="dispatchModalDateTitle" class="text-xs text-indigo-600 font-bold mt-0.5">2026-10-02</p>
                 </div>
-                <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-800 flex items-center space-x-1.5">
+                        <i data-lucide="calculator" class="w-4 h-4 text-indigo-600"></i>
+                        <span>當日預算總薪金：<span id="dailyTotalSalarySpan" class="text-indigo-900 font-mono font-black text-sm">HK$ 0</span></span>
+                    </div>
+                    <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
             </div>
 
             <!-- 新增特別更控制區 -->
@@ -318,6 +366,19 @@
                 <div><label class="block text-xs font-semibold mb-1">專科 / 科目</label><input type="text" id="modalTutorSubjects" class="w-full p-2.5 border rounded-lg text-sm"></div>
                 <div><label class="block text-xs font-semibold mb-1">登入帳號 (Username)</label><input type="text" id="modalTutorUser" required class="w-full p-2.5 border rounded-lg text-sm"></div>
                 <div><label class="block text-xs font-semibold mb-1">WhatsApp 電話號碼</label><input type="text" id="modalTutorPhone" required class="w-full p-2.5 border rounded-lg text-sm"></div>
+                
+                <!-- 新增薪金結構設定 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-indigo-700">標準時薪 (HKD)</label>
+                        <input type="number" id="modalTutorHourlyRate" required placeholder="65" class="w-full p-2.5 border rounded-lg text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-amber-700">特別更薪金 (HKD)</label>
+                        <input type="number" id="modalTutorSpecialRate" required placeholder="100" class="w-full p-2.5 border rounded-lg text-sm font-mono">
+                    </div>
+                </div>
+
                 <div><label class="block text-xs font-semibold mb-1">登入密碼</label><input type="text" id="modalTutorPass" required class="w-full p-2.5 border rounded-lg text-sm font-mono"></div>
                 <div class="flex justify-end space-x-3 pt-2">
                     <button type="button" onclick="closeTutorModal()" class="px-4 py-2 border rounded-lg text-sm">取消</button>
@@ -353,18 +414,18 @@
         const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
 
         const DEFAULT_USERS = {
-            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888" },
-            "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54" },
-            "abbywong": { name: "Abby Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55" },
-            "angustang": { name: "Angus Tang", subjects: "-", role: "tutor", pass: "123456", phone: "63" },
-            "gracewong": { name: "Grace Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55" },
-            "himlau": { name: "Him Lau", subjects: "-", role: "tutor", pass: "123456", phone: "62" },
-            "joechan": { name: "Joe Chan", subjects: "-", role: "tutor", pass: "123456", phone: "66" },
-            "matthewlo": { name: "Matthew Lo", subjects: "-", role: "tutor", pass: "123456", phone: "94" },
-            "milliceau": { name: "Millice Au", subjects: "-", role: "tutor", pass: "123456", phone: "96" },
-            "quincepang": { name: "Quince Pang", subjects: "-", role: "tutor", pass: "123456", phone: "59" },
-            "henryli": { name: "Henry Li", subjects: "-", role: "tutor", pass: "123456", phone: "51" },
-            "soniatang": { name: "Sonia Tang", subjects: "-", role: "tutor", pass: "123456", phone: "92" }
+            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888", hourlyRate: 0, specialRate: 0 },
+            "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54", hourlyRate: 65, specialRate: 100 },
+            "abbywong": { name: "Abby Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55", hourlyRate: 65, specialRate: 100 },
+            "angustang": { name: "Angus Tang", subjects: "-", role: "tutor", pass: "123456", phone: "63", hourlyRate: 65, specialRate: 100 },
+            "gracewong": { name: "Grace Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55", hourlyRate: 65, specialRate: 100 },
+            "himlau": { name: "Him Lau", subjects: "-", role: "tutor", pass: "123456", phone: "62", hourlyRate: 65, specialRate: 100 },
+            "joechan": { name: "Joe Chan", subjects: "-", role: "tutor", pass: "123456", phone: "66", hourlyRate: 65, specialRate: 100 },
+            "matthewlo": { name: "Matthew Lo", subjects: "-", role: "tutor", pass: "123456", phone: "94", hourlyRate: 65, specialRate: 100 },
+            "milliceau": { name: "Millice Au", subjects: "-", role: "tutor", pass: "123456", phone: "96", hourlyRate: 65, specialRate: 100 },
+            "quincepang": { name: "Quince Pang", subjects: "-", role: "tutor", pass: "123456", phone: "59", hourlyRate: 65, specialRate: 100 },
+            "henryli": { name: "Henry Li", subjects: "-", role: "tutor", pass: "123456", phone: "51", hourlyRate: 65, specialRate: 100 },
+            "soniatang": { name: "Sonia Tang", subjects: "-", role: "tutor", pass: "123456", phone: "92", hourlyRate: 65, specialRate: 100 }
         };
 
         const ALL_AVAILABLE_SLOTS = [
@@ -500,9 +561,21 @@
             return ['16:00-20:00'];
         }
 
-        // 收集當日所有標準時段（不把特別更當成固定直欄，特別更獨立處理）
         function getAllSlotsForDate(dateKey, dow) {
             return getDaySlots(dateKey, dow);
+        }
+
+        function parseSlotHours(slotStr) {
+            if (slotStr.startsWith('SPECIAL:')) {
+                slotStr = slotStr.replace('SPECIAL:', '');
+            }
+            let parts = slotStr.split('-');
+            if (parts.length !== 2) return 1; // 預設 1 小時
+            let start = parts[0].split(':');
+            let end = parts[1].split(':');
+            let startMin = parseInt(start[0]) * 60 + parseInt(start[1]);
+            let endMin = parseInt(end[0]) * 60 + parseInt(end[1]);
+            return (endMin - startMin) / 60;
         }
 
         function getFormattedSlotRange(slots) {
@@ -538,6 +611,7 @@
             if (users[currentUser] && users[currentUser].role === 'admin') {
                 renderWeeklyMatrix();
                 renderAdminDaysConfig();
+                renderSalaryTab();
             } else {
                 renderTutorCalendar();
             }
@@ -571,7 +645,6 @@
                         const st = (submissions[dateKey] && submissions[dateKey][currentUser] && submissions[dateKey][currentUser][slot]) || null;
                         html += renderTutorSlotButton(dateKey, slot, st);
                     });
-                    // 渲染該導師在此日被指派的「特別更」
                     if (submissions[dateKey] && submissions[dateKey][currentUser]) {
                         Object.keys(submissions[dateKey][currentUser]).forEach(sKey => {
                             if (sKey.startsWith('SPECIAL:')) {
@@ -647,13 +720,14 @@
 
         // --- ADMIN TABS & MATRIX ---
         function switchAdminTab(tab) {
-            ['matrix', 'days', 'tutors'].forEach(t => {
+            ['matrix', 'salary', 'days', 'tutors'].forEach(t => {
                 const el = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
                 const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
                 if (el) el.classList.toggle('hidden', t !== tab);
                 if (btn) btn.className = `px-5 py-2.5 font-medium text-sm border-b-2 ${t === tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'} flex items-center space-x-2 whitespace-nowrap`;
             });
             if (tab === 'matrix') renderWeeklyMatrix();
+            if (tab === 'salary') renderSalaryTab();
             if (tab === 'days') renderAdminDaysConfig();
             if (tab === 'tutors') renderTutorManagement();
         }
@@ -722,7 +796,6 @@
                             html += `<div class="bg-slate-50 p-1 rounded border text-[10px]"><span class="font-bold">${slot}:</span> ${tList.join(' ')}</div>`;
                         }
                     });
-                    // 顯示當日所有的特別更
                     let specialList = [];
                     if (submissions[dateKey]) {
                         Object.keys(submissions[dateKey]).forEach(tKey => {
@@ -746,6 +819,60 @@
             lucide.createIcons();
         }
 
+        // --- SALARY BUDGET CALCULATION TAB ---
+        function renderSalaryTab() {
+            document.getElementById('salaryMonthSubtitle').innerText = `${currentYear}年 ${currentMonth + 1}月份 薪金總覽與估算`;
+            const tbody = document.getElementById('monthlySalaryTableBody');
+            tbody.innerHTML = '';
+
+            let grandTotalSalary = 0;
+            const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor');
+
+            tutorKeys.forEach(tKey => {
+                const u = users[tKey];
+                const hRate = u.hourlyRate || 65;
+                const spRate = u.specialRate || 100;
+
+                let totalHours = 0;
+                let specialCount = 0;
+
+                // 遍歷當月所有天的報更
+                let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateKey = getDateKey(currentYear, currentMonth, day);
+                    if (submissions[dateKey] && submissions[dateKey][tKey]) {
+                        Object.keys(submissions[dateKey][tKey]).forEach(slot => {
+                            if (submissions[dateKey][tKey][slot] === 'approved') {
+                                if (slot.startsWith('SPECIAL:')) {
+                                    specialCount++;
+                                } else {
+                                    totalHours += parseSlotHours(slot);
+                                }
+                            }
+                        });
+                    }
+                }
+
+                const normalSalary = totalHours * hRate;
+                const specialSalary = specialCount * spRate;
+                const tutorTotalSalary = normalSalary + specialSalary;
+                grandTotalSalary += tutorTotalSalary;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 font-bold text-slate-800">${u.name}</td>
+                        <td class="p-3 font-mono text-indigo-700 font-semibold">HK$ ${hRate}/小時</td>
+                        <td class="p-3 font-mono text-amber-700 font-semibold">HK$ ${spRate}/次</td>
+                        <td class="p-3 text-center font-mono font-bold">${totalHours} 小時</td>
+                        <td class="p-3 text-center font-mono font-bold text-amber-800">${specialCount} 次</td>
+                        <td class="p-3 text-right font-mono font-black text-emerald-700 text-sm">HK$ ${tutorTotalSalary.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('totalMonthlySalaryBudget').innerText = `HK$ ${grandTotalSalary.toLocaleString()}`;
+        }
+
         // --- DISPATCH MODAL ---
         function openDispatchModal(dateKey) {
             targetDispatchDate = dateKey;
@@ -757,33 +884,47 @@
             const head = document.getElementById('dispatchMatrixHead');
             const body = document.getElementById('dispatchMatrixBody');
             
-            // 表格欄位維持標準時段，並在最後加上獨立的「✨ 特別更」管理欄
-            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[150px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `<th class="p-3 text-center bg-amber-100 text-amber-900">✨ 特別更紀錄</th></tr>`;
+            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[140px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `<th class="p-3 text-center bg-amber-100 text-amber-900">✨ 特別更紀錄</th><th class="p-3 text-right bg-emerald-50 text-emerald-800 w-[120px]">當日預計薪金</th></tr>`;
             
             body.innerHTML = '';
+            let dailyGrandTotal = 0;
+
             tutorKeys.forEach(tKey => {
                 let row = `<tr class="hover:bg-slate-50"><td class="p-3 border-r font-bold">${users[tKey].name}</td>`;
-                
-                // 渲染標準時段按鈕
+                const hRate = users[tKey].hourlyRate || 65;
+                const spRate = users[tKey].specialRate || 100;
+                let tutorDailyHours = 0;
+                let tutorDailySpecialCount = 0;
+
                 slots.forEach(slot => {
                     const st = (submissions[dateKey] && submissions[dateKey][tKey] && submissions[dateKey][tKey][slot]) || null;
+                    if (st === 'approved') {
+                        tutorDailyHours += parseSlotHours(slot);
+                    }
                     row += `<td class="p-2 border-r text-center">${renderCellAction(dateKey, tKey, slot, st)}</td>`;
                 });
 
-                // 渲染該導師當日的特別更列表與刪除按鈕
                 let tutorSpecialShifts = [];
                 if (submissions[dateKey] && submissions[dateKey][tKey]) {
                     Object.keys(submissions[dateKey][tKey]).forEach(sKey => {
                         if (sKey.startsWith('SPECIAL:')) {
+                            tutorDailySpecialCount++;
                             const spTime = sKey.replace('SPECIAL:', '');
                             tutorSpecialShifts.push(`<span class="inline-flex items-center bg-amber-100 text-amber-900 px-2 py-0.5 rounded text-[10px] font-bold mr-1 mb-1">✨ ${spTime} <button onclick="removeSpecialShift('${dateKey}', '${tKey}', '${sKey}')" class="ml-1 text-rose-600 hover:text-rose-800 font-bold">×</button></span>`);
                         }
                     });
                 }
-                row += `<td class="p-2 text-center bg-amber-50/50">${tutorSpecialShifts.length > 0 ? tutorSpecialShifts.join('') : '<span class="text-slate-400 text-[10px]">無</span>'}</td>`;
+                row += `<td class="p-2 text-center bg-amber-50/50 border-r">${tutorSpecialShifts.length > 0 ? tutorSpecialShifts.join('') : '<span class="text-slate-400 text-[10px]">無</span>'}</td>`;
+
+                const tutorDailySalary = (tutorDailyHours * hRate) + (tutorDailySpecialCount * spRate);
+                dailyGrandTotal += tutorDailySalary;
+
+                row += `<td class="p-3 text-right font-mono font-bold text-emerald-700 bg-emerald-50/30">HK$ ${tutorDailySalary}</td>`;
                 row += `</tr>`;
                 body.innerHTML += row;
             });
+
+            document.getElementById('dailyTotalSalarySpan').innerText = `HK$ ${dailyGrandTotal.toLocaleString()}`;
             document.getElementById('adminDispatchModal').classList.remove('hidden');
             lucide.createIcons();
         }
@@ -800,11 +941,7 @@
             if (!submissions[dateKey][tKey]) submissions[dateKey][tKey] = {};
             
             if (status === null) {
-                // 關鍵修復：當 Admin 取消派更或修改時，若該導師本來自己有報更（pending），則自動跳轉回復為原本導師報的「待批核 (pending)」狀態！
-                if (submissions[dateKey][tKey]['__original_had_pending_' + slot] || true) { // 確保安全回復
-                    // 檢查原本是否有記錄導師的意願，若無則直接清空或恢復預設
-                    delete submissions[dateKey][tKey][slot];
-                }
+                delete submissions[dateKey][tKey][slot];
             } else {
                 submissions[dateKey][tKey][slot] = status;
             }
@@ -1021,13 +1158,15 @@
                 const t = users[u];
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50">
-                        <td class="p-3 font-semibold">${t.name}</td>
-                        <td class="p-3 font-mono">${u}</td>
+                        <td class="p-3 font-semibold text-slate-800">${t.name}</td>
+                        <td class="p-3 font-mono text-slate-500">${u}</td>
                         <td class="p-3">${t.subjects || '-'}</td>
                         <td class="p-3 font-mono">${t.phone || '-'}</td>
-                        <td class="p-3 font-mono">${t.pass}</td>
+                        <td class="p-3 font-mono font-bold text-indigo-700">HK$ ${t.hourlyRate || 65}</td>
+                        <td class="p-3 font-mono font-bold text-amber-700">HK$ ${t.specialRate || 100}</td>
+                        <td class="p-3 font-mono text-slate-400">${t.pass}</td>
                         <td class="p-3 text-right space-x-2">
-                            <button onclick="editTutor('${u}')" class="text-indigo-600 hover:text-indigo-800 font-medium text-xs">編輯/改密碼</button>
+                            <button onclick="editTutor('${u}')" class="text-indigo-600 hover:text-indigo-800 font-medium text-xs">編輯/設薪金</button>
                             <button onclick="deleteTutor('${u}')" class="text-rose-600 hover:text-rose-800 font-medium text-xs">停用/刪除</button>
                         </td>
                     </tr>
@@ -1037,25 +1176,29 @@
 
         function openAddTutorModal() {
             document.getElementById('editTutorKey').value = '';
-            document.getElementById('tutorModalTitle').innerText = '新增導師帳號';
+            document.getElementById('tutorModalTitle').innerText = '新增導師帳號與薪金';
             document.getElementById('modalTutorName').value = '';
             document.getElementById('modalTutorSubjects').value = '';
             document.getElementById('modalTutorUser').value = '';
             document.getElementById('modalTutorUser').disabled = false;
             document.getElementById('modalTutorPhone').value = '';
+            document.getElementById('modalTutorHourlyRate').value = '65';
+            document.getElementById('modalTutorSpecialRate').value = '100';
             document.getElementById('modalTutorPass').value = '123456';
-            document.getElementById('tutorModal').classList.add('hidden');
+            document.getElementById('tutorModal').classList.remove('hidden');
         }
 
         function editTutor(u) {
             const t = users[u];
             document.getElementById('editTutorKey').value = u;
-            document.getElementById('tutorModalTitle').innerText = `修改導師資料 (${t.name})`;
+            document.getElementById('tutorModalTitle').innerText = `修改導師資料與薪金 (${t.name})`;
             document.getElementById('modalTutorName').value = t.name;
             document.getElementById('modalTutorSubjects').value = t.subjects || '-';
             document.getElementById('modalTutorUser').value = u;
             document.getElementById('modalTutorUser').disabled = true;
             document.getElementById('modalTutorPhone').value = t.phone || '';
+            document.getElementById('modalTutorHourlyRate').value = t.hourlyRate || 65;
+            document.getElementById('modalTutorSpecialRate').value = t.specialRate || 100;
             document.getElementById('modalTutorPass').value = t.pass || '';
             document.getElementById('tutorModal').classList.remove('hidden');
         }
@@ -1069,23 +1212,27 @@
             const subjects = document.getElementById('modalTutorSubjects').value.trim();
             const u = document.getElementById('modalTutorUser').value.trim();
             const phone = document.getElementById('modalTutorPhone').value.trim();
+            const hourlyRate = parseFloat(document.getElementById('modalTutorHourlyRate').value) || 65;
+            const specialRate = parseFloat(document.getElementById('modalTutorSpecialRate').value) || 100;
             const pass = document.getElementById('modalTutorPass').value.trim();
 
             if (editKey) {
                 users[editKey].name = name;
                 users[editKey].subjects = subjects;
                 users[editKey].phone = phone;
+                users[editKey].hourlyRate = hourlyRate;
+                users[editKey].specialRate = specialRate;
                 users[editKey].pass = pass;
             } else {
                 if (users[u]) { alert('此帳號已存在！'); return; }
-                users[u] = { name, subjects, role: 'tutor', pass, phone };
+                users[u] = { name, subjects, role: 'tutor', pass, phone, hourlyRate, specialRate };
             }
 
             syncCloudData();
             closeTutorModal();
             renderTutorManagement();
             initTutorSelect();
-            alert("導師資料已成功儲存並同步至 Google Sheet！");
+            alert("導師資料及薪金結構已成功儲存並同步至 Google Sheet！");
         }
 
         function deleteTutor(u) {
