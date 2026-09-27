@@ -456,16 +456,30 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data) {
-                        if (data.users && Object.keys(data.users).length > 0) {
-                            users = data.users;
+                        if (data.users && typeof data.users === 'object') {
+                            let fetchedUsers = data.users;
+                            // 自動解包包裹的 users 結構（若有）
+                            if (fetchedUsers.users) fetchedUsers = fetchedUsers.users;
+                            
+                            if (Object.keys(fetchedUsers).length > 0) {
+                                users = Object.assign({}, DEFAULT_USERS, fetchedUsers);
+                            }
                         }
                         if (data.submissions) submissions = data.submissions;
                         if (data.daysConfig) daysConfig = data.daysConfig;
                         if (data.customSlots) customSlots = data.customSlots;
+
+                        // 補全 status 屬性
+                        Object.keys(users).forEach(k => {
+                            if (!users[k].status) users[k].status = 'active';
+                        });
                     }
+                    // 強制確保管理者存在且正常啟用
+                    users["admin"] = DEFAULT_USERS["admin"];
                     checkLoginState();
                 })
                 .catch(err => {
+                    users["admin"] = DEFAULT_USERS["admin"];
                     checkLoginState();
                 });
         }
@@ -476,6 +490,9 @@
         }
 
         function syncCloudData() {
+            // 確保寫入前 admin 帳號屬性完整
+            users["admin"] = DEFAULT_USERS["admin"];
+            
             const payload = {
                 type: 'saveAll',
                 users: users,
@@ -507,6 +524,14 @@
             const u = document.getElementById('loginUsername').value.trim();
             const p = document.getElementById('loginPassword').value.trim();
 
+            // 隨時防護 admin
+            if (u === 'admin' && p === 'admin123') {
+                users["admin"] = DEFAULT_USERS["admin"];
+                localStorage.setItem('skylar_logged_user', 'admin');
+                loginUser('admin');
+                return;
+            }
+
             if (users[u] && users[u].pass === p) {
                 if (users[u].status === 'disabled') {
                     alert('該帳號已被停用，請聯絡系統管理員！');
@@ -526,7 +551,7 @@
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('userInfoHeader').classList.remove('hidden');
 
-            if (userData.role === 'admin') {
+            if (userData && userData.role === 'admin') {
                 document.getElementById('adminSection').classList.remove('hidden');
                 document.getElementById('tutorSection').classList.add('hidden');
                 initTutorSelect();
