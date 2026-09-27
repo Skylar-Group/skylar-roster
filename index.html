@@ -51,7 +51,7 @@
 
                 <div id="loginError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center space-x-2">
                     <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
-                    <span id="loginErrorMsg">帳號或密碼錯誤</span>
+                    <span id="loginErrorMsg">帳號、密碼錯誤或帳號已被停用</span>
                 </div>
 
                 <form onsubmit="handleLogin(event)" class="space-y-5">
@@ -254,6 +254,7 @@
                                 <th class="p-3">WhatsApp 電話</th>
                                 <th class="p-3">標準時薪 (HKD)</th>
                                 <th class="p-3">特別更薪金 (HKD)</th>
+                                <th class="p-3">帳號狀態</th>
                                 <th class="p-3">密碼</th>
                                 <th class="p-3 text-right">操作</th>
                             </tr>
@@ -282,7 +283,7 @@
                 </div>
             </div>
 
-            <!-- 新增特別更控制區 (含備註輸入) -->
+            <!-- 新增特別更控制區 -->
             <div class="bg-purple-50 border border-purple-200 p-3 rounded-xl flex flex-col lg:flex-row items-center justify-between gap-3 flex-shrink-0">
                 <div class="flex items-center space-x-2">
                     <span class="bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">✨ 指派特別更</span>
@@ -414,18 +415,18 @@
         const GOOGLE_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUtm7s-sRt2PPgbCoVu39HctBsNEIs9sl3MuOIwUFP1Ww-Odg-Eu57i5oj7-ETPHIj/exec';
 
         const DEFAULT_USERS = {
-            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888", hourlyRate: 0, specialRate: 0 },
-            "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54", hourlyRate: 65, specialRate: 100 },
-            "abbywong": { name: "Abby Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55", hourlyRate: 65, specialRate: 100 },
-            "angustang": { name: "Angus Tang", subjects: "-", role: "tutor", pass: "123456", phone: "63", hourlyRate: 65, specialRate: 100 },
-            "gracewong": { name: "Grace Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55", hourlyRate: 65, specialRate: 100 },
-            "himlau": { name: "Him Lau", subjects: "-", role: "tutor", pass: "123456", phone: "62", hourlyRate: 65, specialRate: 100 },
-            "joechan": { name: "Joe Chan", subjects: "-", role: "tutor", pass: "123456", phone: "66", hourlyRate: 65, specialRate: 100 },
-            "matthewlo": { name: "Matthew Lo", subjects: "-", role: "tutor", pass: "123456", phone: "94", hourlyRate: 65, specialRate: 100 },
-            "milliceau": { name: "Millice Au", subjects: "-", role: "tutor", pass: "123456", phone: "96", hourlyRate: 65, specialRate: 100 },
-            "quincepang": { name: "Quince Pang", subjects: "-", role: "tutor", pass: "123456", phone: "59", hourlyRate: 65, specialRate: 100 },
-            "henryli": { name: "Henry Li", subjects: "-", role: "tutor", pass: "123456", phone: "51", hourlyRate: 65, specialRate: 100 },
-            "soniatang": { name: "Sonia Tang", subjects: "-", role: "tutor", pass: "123456", phone: "92", hourlyRate: 65, specialRate: 100 }
+            "admin": { name: "系統管理員", subjects: "Admin", role: "admin", pass: "admin123", phone: "98888888", hourlyRate: 0, specialRate: 0, status: "active" },
+            "shanyeung": { name: "Yeung Man Shan", subjects: "-", role: "tutor", pass: "123456", phone: "54", hourlyRate: 65, specialRate: 100, status: "active" },
+            "abbywong": { name: "Abby Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55", hourlyRate: 65, specialRate: 100, status: "active" },
+            "angustang": { name: "Angus Tang", subjects: "-", role: "tutor", pass: "123456", phone: "63", hourlyRate: 65, specialRate: 100, status: "active" },
+            "gracewong": { name: "Grace Wong", subjects: "-", role: "tutor", pass: "123456", phone: "55", hourlyRate: 65, specialRate: 100, status: "active" },
+            "himlau": { name: "Him Lau", subjects: "-", role: "tutor", pass: "123456", phone: "62", hourlyRate: 65, specialRate: 100, status: "active" },
+            "joechan": { name: "Joe Chan", subjects: "-", role: "tutor", pass: "123456", phone: "66", hourlyRate: 65, specialRate: 100, status: "active" },
+            "matthewlo": { name: "Matthew Lo", subjects: "-", role: "tutor", pass: "123456", phone: "94", hourlyRate: 65, specialRate: 100, status: "active" },
+            "milliceau": { name: "Millice Au", subjects: "-", role: "tutor", pass: "123456", phone: "96", hourlyRate: 65, specialRate: 100, status: "active" },
+            "quincepang": { name: "Quince Pang", subjects: "-", role: "tutor", pass: "123456", phone: "59", hourlyRate: 65, specialRate: 100, status: "active" },
+            "henryli": { name: "Henry Li", subjects: "-", role: "tutor", pass: "123456", phone: "51", hourlyRate: 65, specialRate: 100, status: "active" },
+            "soniatang": { name: "Sonia Tang", subjects: "-", role: "tutor", pass: "123456", phone: "92", hourlyRate: 65, specialRate: 100, status: "active" }
         };
 
         const ALL_AVAILABLE_SLOTS = [
@@ -455,10 +456,8 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data) {
-                        if (data.users && Object.keys(data.users).length > 1) {
+                        if (data.users && Object.keys(data.users).length > 0) {
                             users = data.users;
-                        } else {
-                            users = DEFAULT_USERS;
                         }
                         if (data.submissions) submissions = data.submissions;
                         if (data.daysConfig) daysConfig = data.daysConfig;
@@ -467,7 +466,6 @@
                     checkLoginState();
                 })
                 .catch(err => {
-                    users = DEFAULT_USERS;
                     checkLoginState();
                 });
         }
@@ -496,6 +494,10 @@
         function checkLoginState() {
             const saved = localStorage.getItem('skylar_logged_user');
             if (saved && users[saved]) {
+                if (users[saved].status === 'disabled') {
+                    localStorage.removeItem('skylar_logged_user');
+                    return;
+                }
                 loginUser(saved);
             }
         }
@@ -506,6 +508,10 @@
             const p = document.getElementById('loginPassword').value.trim();
 
             if (users[u] && users[u].pass === p) {
+                if (users[u].status === 'disabled') {
+                    alert('該帳號已被停用，請聯絡系統管理員！');
+                    return;
+                }
                 localStorage.setItem('skylar_logged_user', u);
                 loginUser(u);
             } else {
@@ -752,7 +758,7 @@
             const waSelect = document.getElementById('waRecipientSelect');
             const spSelect = document.getElementById('specialShiftTutor');
             
-            const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor');
+            const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor' && users[u].status !== 'disabled');
             
             if (select) {
                 select.innerHTML = '';
@@ -875,8 +881,8 @@
                 grandTotalSalary += tutorTotalSalary;
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-3 font-bold text-slate-800">${u.name}</td>
+                    <tr class="hover:bg-slate-50 ${u.status === 'disabled' ? 'opacity-50 bg-slate-100' : ''}">
+                        <td class="p-3 font-bold text-slate-800">${u.name} ${u.status === 'disabled' ? '<span class="text-[10px] bg-rose-100 text-rose-700 px-1 py-0.5 rounded ml-1 font-normal">已停用</span>' : ''}</td>
                         <td class="p-3 font-mono text-indigo-700 font-semibold">HK$ ${hRate}/小時</td>
                         <td class="p-3 font-mono text-purple-700 font-semibold">HK$ ${spRate}/次</td>
                         <td class="p-3 text-center font-mono font-bold">${totalHours} 小時</td>
@@ -895,12 +901,12 @@
             document.getElementById('dispatchModalDateTitle').innerText = dateKey;
             const dow = new Date(dateKey).getDay();
             const slots = getAllSlotsForDate(dateKey, dow);
-            const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor');
+            const tutorKeys = Object.keys(users).filter(u => users[u].role === 'tutor' && users[u].status !== 'disabled');
 
             const head = document.getElementById('dispatchMatrixHead');
             const body = document.getElementById('dispatchMatrixBody');
             
-            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[140px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `<th class="p-3 text-center bg-purple-100 text-purple-900">✨ 特別更紀錄</th><th class="p-3 text-right bg-emerald-50 text-emerald-800 w-[120px]">當日預計薪金</th></tr>`;
+            head.innerHTML = `<tr><th class="p-3 bg-slate-100 border-r w-[140px]">導師 \\ 時段</th>` + slots.map(s => `<th class="p-3 border-r text-center bg-indigo-50">${s}</th>`).join('') + `<th class="p-3 text-center bg-purple-100 text-purple-900">✨ 特別更紀錄</th><th class="p-3 text-right bg-emerald-50 text-emerald-800 w-[120px]">當日預算總薪金</th></tr>`;
             
             body.innerHTML = '';
             let dailyGrandTotal = 0;
@@ -1100,7 +1106,7 @@
                 let html = `<div class="font-bold text-xs border-b pb-1 mb-1">${day}日</div>`;
                 if (open) {
                     let list = [];
-                    Object.keys(users).filter(u => users[u].role === 'tutor').forEach(tKey => {
+                    Object.keys(users).filter(u => users[u].role === 'tutor' && users[u].status !== 'disabled').forEach(tKey => {
                         if (submissions[dateKey] && submissions[dateKey][tKey]) {
                             Object.keys(submissions[dateKey][tKey]).forEach(s => {
                                 if (submissions[dateKey][tKey][s] === 'approved') {
@@ -1224,18 +1230,27 @@
             tbody.innerHTML = '';
             Object.keys(users).filter(u => users[u].role === 'tutor').forEach(u => {
                 const t = users[u];
+                const isDisabled = t.status === 'disabled';
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50">
+                    <tr class="hover:bg-slate-50 ${isDisabled ? 'bg-slate-100 opacity-60' : ''}">
                         <td class="p-3 font-semibold text-slate-800">${t.name}</td>
                         <td class="p-3 font-mono text-slate-500">${u}</td>
                         <td class="p-3">${t.subjects || '-'}</td>
                         <td class="p-3 font-mono">${t.phone || '-'}</td>
                         <td class="p-3 font-mono font-bold text-indigo-700">HK$ ${t.hourlyRate || 65}</td>
                         <td class="p-3 font-mono font-bold text-purple-700">HK$ ${t.specialRate || 100}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-xs font-bold ${isDisabled ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800'}">
+                                ${isDisabled ? '已停用' : '正常啟用'}
+                            </span>
+                        </td>
                         <td class="p-3 font-mono text-slate-400">${t.pass}</td>
                         <td class="p-3 text-right space-x-2">
-                            <button onclick="editTutor('${u}')" class="text-indigo-600 hover:text-indigo-800 font-medium text-xs">編輯/設薪金</button>
-                            <button onclick="deleteTutor('${u}')" class="text-rose-600 hover:text-rose-800 font-medium text-xs">停用/刪除</button>
+                            <button onclick="editTutor('${u}')" class="text-indigo-600 hover:text-indigo-800 font-medium text-xs">編輯</button>
+                            <button onclick="toggleTutorStatus('${u}')" class="${isDisabled ? 'text-emerald-600 hover:text-emerald-800' : 'text-amber-600 hover:text-amber-800'} font-medium text-xs">
+                                ${isDisabled ? '重新啟用' : '停用帳號'}
+                            </button>
+                            <button onclick="deleteTutor('${u}')" class="text-rose-600 hover:text-rose-800 font-medium text-xs">徹底刪除</button>
                         </td>
                     </tr>
                 `;
@@ -1293,7 +1308,7 @@
                 users[editKey].pass = pass;
             } else {
                 if (users[u]) { alert('此帳號已存在！'); return; }
-                users[u] = { name, subjects, role: 'tutor', pass, phone, hourlyRate, specialRate };
+                users[u] = { name, subjects, role: 'tutor', pass, phone, hourlyRate, specialRate, status: 'active' };
             }
 
             syncCloudData();
@@ -1303,8 +1318,22 @@
             alert("導師資料及薪金結構已成功儲存並同步至 Google Sheet！");
         }
 
+        function toggleTutorStatus(u) {
+            const currentStatus = users[u].status || 'active';
+            const newStatus = currentStatus === 'active' ? 'disabled' : 'active';
+            const actionText = newStatus === 'disabled' ? '停用' : '重新啟用';
+
+            if (confirm(`確定要${actionText}導師 ${users[u].name} 的帳號嗎？`)) {
+                users[u].status = newStatus;
+                syncCloudData();
+                renderTutorManagement();
+                initTutorSelect();
+                alert(`已成功${actionText}導師帳號！`);
+            }
+        }
+
         function deleteTutor(u) {
-            if (confirm(`確定要停用/刪除導師 ${users[u].name} 嗎？`)) {
+            if (confirm(`⚠️ 警告：徹底刪除會移除 ${users[u].name} 的帳號。確定要刪除嗎？`)) {
                 delete users[u];
                 syncCloudData();
                 renderTutorManagement();
