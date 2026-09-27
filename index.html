@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- HTML2Canvas CDN (用於將月曆更表轉為 PNG 圖像) -->
+    <!-- HTML2Canvas CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
@@ -225,7 +225,6 @@
                         <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-200 rounded-lg"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                     </div>
                 </div>
-                <!-- 星期標題列 (一至日) -->
                 <div class="grid grid-cols-7 gap-3 text-center text-xs font-bold text-slate-600 uppercase">
                     <div class="py-2 bg-slate-100 rounded-lg">一 (Mon)</div>
                     <div class="py-2 bg-slate-100 rounded-lg">二 (Tue)</div>
@@ -283,7 +282,7 @@
                 </div>
             </div>
 
-            <!-- 新增特別更控制區 -->
+            <!-- 特別更控制區 -->
             <div class="bg-purple-50 border border-purple-200 p-3 rounded-xl flex flex-col lg:flex-row items-center justify-between gap-3 flex-shrink-0">
                 <div class="flex items-center space-x-2">
                     <span class="bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">✨ 指派特別更</span>
@@ -458,23 +457,23 @@
                     if (data) {
                         if (data.users && typeof data.users === 'object') {
                             let fetchedUsers = data.users;
-                            // 自動解包包裹的 users 結構（若有）
                             if (fetchedUsers.users) fetchedUsers = fetchedUsers.users;
-                            
                             if (Object.keys(fetchedUsers).length > 0) {
                                 users = Object.assign({}, DEFAULT_USERS, fetchedUsers);
                             }
                         }
-                        if (data.submissions) submissions = data.submissions;
-                        if (data.daysConfig) daysConfig = data.daysConfig;
-                        if (data.customSlots) customSlots = data.customSlots;
+                        
+                        if (data.submissions && Object.keys(data.submissions).length > 0) {
+                            submissions = Object.assign({}, submissions, data.submissions);
+                        }
+                        if (data.daysConfig) daysConfig = Object.assign({}, daysConfig, data.daysConfig);
+                        if (data.customSlots) customSlots = Object.assign({}, customSlots, data.customSlots);
 
                         // 補全 status 屬性
                         Object.keys(users).forEach(k => {
                             if (!users[k].status) users[k].status = 'active';
                         });
                     }
-                    // 強制確保管理者存在且正常啟用
                     users["admin"] = DEFAULT_USERS["admin"];
                     checkLoginState();
                 })
@@ -490,7 +489,6 @@
         }
 
         function syncCloudData() {
-            // 確保寫入前 admin 帳號屬性完整
             users["admin"] = DEFAULT_USERS["admin"];
             
             const payload = {
@@ -524,7 +522,6 @@
             const u = document.getElementById('loginUsername').value.trim();
             const p = document.getElementById('loginPassword').value.trim();
 
-            // 隨時防護 admin
             if (u === 'admin' && p === 'admin123') {
                 users["admin"] = DEFAULT_USERS["admin"];
                 localStorage.setItem('skylar_logged_user', 'admin');
